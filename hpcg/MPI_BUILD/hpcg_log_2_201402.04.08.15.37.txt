@@ -1,0 +1,16 @@
+For rank = 2
+ipx = 0
+ipy = 1
+ipz = 0
+For rank = 2
+ipx = 0
+ipy = 1
+ipz = 0
+For rank = 2
+ipx = 0
+ipy = 1
+ipz = 0
+For rank = 2
+ipx = 0
+ipy = 1
+ipz = 0

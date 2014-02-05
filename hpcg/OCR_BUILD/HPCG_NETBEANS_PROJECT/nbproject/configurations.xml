@@ -1,0 +1,244 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configurationDescriptor version="90">
+  <logicalFolder name="root" displayName="root" projectFiles="true" kind="ROOT">
+    <df root="../../src" name="0">
+      <in>CG.cpp</in>
+      <in>CG_ref.cpp</in>
+      <in>ComputeDotProduct.cpp</in>
+      <in>ComputeDotProduct_ref.cpp</in>
+      <in>ComputeMG.cpp</in>
+      <in>ComputeMG_ref.cpp</in>
+      <in>ComputeProlongation_ref.cpp</in>
+      <in>ComputeResidual.cpp</in>
+      <in>ComputeRestriction_ref.cpp</in>
+      <in>ComputeSPMV.cpp</in>
+      <in>ComputeSPMV_ref.cpp</in>
+      <in>ComputeSYMGS.cpp</in>
+      <in>ComputeSYMGS_ref.cpp</in>
+      <in>ComputeWAXPBY.cpp</in>
+      <in>ComputeWAXPBY_ref.cpp</in>
+      <in>ExchangeHalo.cpp</in>
+      <in>GenerateCoarseProblem.cpp</in>
+      <in>GenerateGeometry.cpp</in>
+      <in>GenerateProblem.cpp</in>
+      <in>OptimizeProblem.cpp</in>
+      <in>ReadHpcgDat.cpp</in>
+      <in>ReportResults.cpp</in>
+      <in>SetupHalo.cpp</in>
+      <in>TestCG.cpp</in>
+      <in>TestNorms.cpp</in>
+      <in>TestSymmetry.cpp</in>
+      <in>WriteProblem.cpp</in>
+      <in>YAML_Doc.cpp</in>
+      <in>YAML_Element.cpp</in>
+      <in>finalize.cpp</in>
+      <in>init.cpp</in>
+      <in>mytimer.cpp</in>
+    </df>
+    <logicalFolder name="testing"
+                   displayName="testing"
+                   projectFiles="true"
+                   root="../../testing">
+      <itemPath>../../testing/main.cpp</itemPath>
+    </logicalFolder>
+    <logicalFolder name="ExternalFiles"
+                   displayName="Important Files"
+                   projectFiles="false"
+                   kind="IMPORTANT_FILES_FOLDER">
+      <itemPath>../Makefile</itemPath>
+    </logicalFolder>
+  </logicalFolder>
+  <sourceFolderFilter>^(nbproject)$</sourceFolderFilter>
+  <sourceRootList>
+    <Elem>../../src</Elem>
+  </sourceRootList>
+  <projectmakefile>../Makefile</projectmakefile>
+  <confs>
+    <conf name="Default" type="0">
+      <toolsSet>
+        <compilerSet>default</compilerSet>
+        <dependencyChecking>false</dependencyChecking>
+        <rebuildPropChanged>false</rebuildPropChanged>
+      </toolsSet>
+      <codeAssistance>
+        <envVariables>
+          <Elem>INSTALL_ROOT</Elem>
+          <Elem>LD_LIBRARY_PATH</Elem>
+          <Elem>OCR_CONFIG</Elem>
+          <Elem>OCR_INSTALL</Elem>
+          <Elem>OCR_ROOT</Elem>
+        </envVariables>
+      </codeAssistance>
+      <makefileType>
+        <makeTool>
+          <buildCommandWorkingDir>..</buildCommandWorkingDir>
+          <buildCommand>${MAKE} -f Makefile</buildCommand>
+          <cleanCommand>${MAKE} -f Makefile clean</cleanCommand>
+          <executablePath>../bin/xhpcg</executablePath>
+          <ccTool>
+            <incDir>
+              <pElem>../src</pElem>
+              <pElem>../../../../ocr/ocr-install/include</pElem>
+              <pElem>../../src</pElem>
+              <pElem>..</pElem>
+            </incDir>
+            <preprocessorList>
+              <Elem>HPCG_DEBUG</Elem>
+              <Elem>HPCG_NOMPI</Elem>
+              <Elem>HPCG_NOOPENMP</Elem>
+              <Elem>HPCG_OCR</Elem>
+              <Elem>_OPTIMIZE__=1</Elem>
+            </preprocessorList>
+            <undefinedList>
+              <Elem>__NO_INLINE__</Elem>
+            </undefinedList>
+          </ccTool>
+        </makeTool>
+      </makefileType>
+      <item path="../../src/CG.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../../src/CG_ref.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../../src/ComputeDotProduct.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../../src/ComputeDotProduct_ref.cpp"
+            ex="false"
+            tool="1"
+            flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../../src/ComputeMG.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../../src/ComputeMG_ref.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../../src/ComputeProlongation_ref.cpp"
+            ex="false"
+            tool="1"
+            flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../../src/ComputeResidual.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../../src/ComputeRestriction_ref.cpp"
+            ex="false"
+            tool="1"
+            flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../../src/ComputeSPMV.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../../src/ComputeSPMV_ref.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../../src/ComputeSYMGS.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../../src/ComputeSYMGS_ref.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../../src/ComputeWAXPBY.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../../src/ComputeWAXPBY_ref.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../../src/ExchangeHalo.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../../src/GenerateCoarseProblem.cpp"
+            ex="false"
+            tool="1"
+            flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../../src/GenerateGeometry.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../../src/GenerateProblem.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../../src/OptimizeProblem.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../../src/ReadHpcgDat.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../../src/ReportResults.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../../src/SetupHalo.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../../src/TestCG.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../../src/TestNorms.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../../src/TestSymmetry.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../../src/WriteProblem.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../../src/YAML_Doc.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../../src/YAML_Element.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../../src/finalize.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../../src/init.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../../src/mytimer.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+      <item path="../../testing/main.cpp" ex="false" tool="1" flavor2="4">
+        <ccTool>
+        </ccTool>
+      </item>
+    </conf>
+  </confs>
+</configurationDescriptor>

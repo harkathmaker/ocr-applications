@@ -1,0 +1,21 @@
+called: /usr/bin/g++
+	/home/commlaptop/projects/hpcg-1.1/OCR_BUILD
+	/usr/bin/g++
+	-c
+	-DHPCG_OCR
+	-I./src
+	-I./src/OCR
+	-I/include
+	-O3
+	-ffast-math
+	-ftree-vectorize
+	-ftree-vectorizer-verbose=0
+	-fopenmp
+	-I../src
+	../testing/main.cpp
+	-o
+	testing/main.o
+	-I/usr/lib/openmpi/include
+	-I/usr/lib/openmpi/include/openmpi
+	-pthread
+
