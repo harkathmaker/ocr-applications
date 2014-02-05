@@ -1,0 +1,6 @@
+mpicxx -c -DHPCG_OCR -I./src -I./src/OCR -I/include -O3 -ffast-math -ftree-vectorize -ftree-vectorizer-verbose=0 -fopenmp -I../src ../testing/main.cpp -o testing/main.o
+../testing/main.cpp:28:17: fatal error: ocr.h: No such file or directory
+ #include <ocr.h>
+                 ^
+compilation terminated.
+make: *** [testing/main.o] Error 1
