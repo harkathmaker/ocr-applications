@@ -1,5 +1,9 @@
-// Serial version of Cooley-Tukey FFT in plain C.
+// Parallel version of Cooley-Tukey FFT algorithm.
+// The problem is divided into smaller chunks of half size recursively,
+// until the base size SERIAL_BLOCK_SIZE is reached. These chunks are
+// processed by EDTs, which write the result for their parents to finish processing.
 //
+// 
 
 #define _USE_MATH_DEFINES
 
@@ -8,8 +12,9 @@
 #include <math.h>
 
 #define SERIAL_BLOCK_SIZE 1024
-#define PRINT_RESULTS 0
+#define PRINT_RESULTS 1
 
+// Serial decimation-in-time FFT. Used for matrices smaller than SERIAL_BLOCK_SIZE.
 void ditfft2(float *X_real, float *X_imag, float *x_in, int N, int step) {
 	if(N == 1) {
 		X_real[0] = x_in[0];
@@ -45,14 +50,9 @@ void ditfft2(float *X_real, float *X_imag, float *x_in, int N, int step) {
 #define __OCR__
 #include "ocr.h"
 
+// First part of the Cooley-Tukey algorithm. The work is recursively split in half until N = SERIAL_BLOCK_SIZE.
 ocrGuid_t fftStartEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
-	// Use macros from compat.h for fsim/ocr compatibility
-	//PRINTF("Hello from EDT\n");
-	//PRINTF("paramc: %d\n",paramc);
 	int i;
-	//for(i=0;i<paramc;i++) {
-	//	PRINTF("paramv[%d]: %lu\n",i,paramv[i]);
-	//}
 	ocrGuid_t startGuid = paramv[0];
 	ocrGuid_t endGuid = paramv[1];
 	ocrGuid_t endSlaveGuid = paramv[2];
@@ -71,17 +71,9 @@ ocrGuid_t fftStartEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
 	float *X_imag = (float*)(data_imag+offset);
 	//PRINTF("Step %d offset: %d N*step: %d\n", step, offset, N*step);
 	
-	//if(step == 1) {
-	//for(i=0;i<N;i++) {
-	//	PRINTF("%d %f \n",i,x_in[i]);
-	//}
-	//}
 
-	//ditfft2(X_real, X_imag, x_in, N, 1);
 	if(N <= SERIAL_BLOCK_SIZE) {
 		ditfft2(X_real, X_imag, x_in+x_in_offset, N, step);
-		//X_real[0] = x_in[x_in_offset];
-		//X_imag[0] = 0;
 	} else {
 		// DFT even side
 		u64 childParamv[7] = { startGuid, endGuid, endSlaveGuid, N/2, 2 * step, 0 + offset, x_in_offset };
@@ -90,7 +82,8 @@ ocrGuid_t fftStartEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
 		//PRINTF("Creating children of size %d\n",N/2);
 		ocrGuid_t edtGuid, edtGuid2, endEdtGuid, finishEventGuid, finishEventGuid2;
 
-		// Divide-and-conquer child EDTs will not need finish event guids
+		// Divide-and-conquer child EDTs will not need finish event guids.
+		// This dependency list is the same as endDependencies below minus the finish event guids.
 		ocrGuid_t childDependencies[3] = { dataInGuid, dataRealGuid, dataImagGuid };
 
 		ocrEdtCreate(&edtGuid, startGuid, EDT_PARAM_DEF, childParamv, EDT_PARAM_DEF, childDependencies, EDT_PROP_FINISH, NULL_GUID, &finishEventGuid);
@@ -109,6 +102,9 @@ ocrGuid_t fftStartEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
 	return NULL_GUID;
 }
 
+// Handles the second part of the Cooley-Tukey algorithm, performing calculations on
+// The entire set of coefficients. The work is again split to be computed in parallel
+// by a number of slaves.
 ocrGuid_t fftEndEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
 	int i;
 	ocrGuid_t startGuid = paramv[0];
@@ -160,28 +156,6 @@ ocrGuid_t fftEndEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
 
 		ocrEdtCreate(slaveGuids, endSlaveGuid, EDT_PARAM_DEF, slaveParamv, EDT_PARAM_DEF, dataGuids, EDT_PROP_NONE, NULL_GUID, NULL);
 	}
-	//int k;
-	//for(k=0;k<N/2;k++) {
-	//	float t_real = X_real[k];
-	//	float t_imag = X_imag[k];
-	//	double twiddle_real;
-	//	double twiddle_imag;
-	//	twiddle_imag = sin(-2 * M_PI * k / N);
-	//	twiddle_real = cos(-2 * M_PI * k / N);
-	//	float xr = X_real[k+N/2];
-	//	float xi = X_imag[k+N/2];
-
-	//	// (a+bi)(c+di) = (ac - bd) + (bc + ad)i
-	//	X_real[k] = t_real +
-	//		(twiddle_real*xr - twiddle_imag*xi);
-	//	X_imag[k] = t_imag +
-	//		(twiddle_imag*xr + twiddle_real*xi);
-	//	X_real[k+N/2] = t_real -
-	//		(twiddle_real*xr - twiddle_imag*xi);
-	//	X_imag[k+N/2] = t_imag -
-	//		(twiddle_imag*xr + twiddle_real*xi);
-	//}
-	//sleep(1);
 	return NULL_GUID;
 }
 ocrGuid_t fftEndSlaveEdt(u32 paramc, u64 *paramv, u32 depc, ocrEdtDep_t depv[]) {
@@ -210,20 +184,21 @@ ocrGuid_t fftEndSlaveEdt(u32 paramc, u64 *paramv, u32 depc, ocrEdtDep_t depv[]) 
 		float xi = X_imag[k+N/2];
 
 		// (a+bi)(c+di) = (ac - bd) + (bc + ad)i
-//		X_real[k] = t_real +
-//			(twiddle_real*xr - twiddle_imag*xi);
-//		X_imag[k] = t_imag +
-//			(twiddle_imag*xr + twiddle_real*xi);
-//		X_real[k+N/2] = t_real -
-//			(twiddle_real*xr - twiddle_imag*xi);
-//		X_imag[k+N/2] = t_imag -
-//			(twiddle_imag*xr + twiddle_real*xi);
+		X_real[k] = t_real +
+			(twiddle_real*xr - twiddle_imag*xi);
+		X_imag[k] = t_imag +
+			(twiddle_imag*xr + twiddle_real*xi);
+		X_real[k+N/2] = t_real -
+			(twiddle_real*xr - twiddle_imag*xi);
+		X_imag[k+N/2] = t_imag -
+			(twiddle_imag*xr + twiddle_real*xi);
 	}
 //	sleep(1);
 
 	return NULL_GUID;
 }
 
+// Prints the final result of the computation. Called as the last EDT.
 ocrGuid_t finalPrintEdt(u32 paramc, u64 *paramv, u32 depc, ocrEdtDep_t depv[]) {
 	PRINTF("Final print EDT\n");
 	int i;
@@ -275,8 +250,8 @@ ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
 	int N = pow(2,strtol(getArgv(depv[0].ptr,1), NULL, 10));
 	int iterations = ( argc > 2 ? strtol(getArgv(depv[0].ptr,2), NULL, 10) : 1 );
 
-	// x_in, X_real, and X_imag in a contiguous block
 	float *x_in;
+	// Output for the FFT
 	float *X_real;
 	float *X_imag;
 	ocrGuid_t dataInGuid,dataRealGuid,dataImagGuid;
@@ -292,10 +267,9 @@ ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
 		X_imag[i] = 0;
 	}
 	x_in[1] = 1;
-	x_in[3] = -3;
-	x_in[4] = 8;
-	x_in[5] = 9;
-	x_in[6] = 1;
+	x_in[3] = -1;
+	x_in[5] = 1;
+	x_in[7] = -1;
 
 
 	u64 edtParamv[7] = { startTempGuid, endTempGuid, endSlaveTempGuid, N, 1 /* step size */, 0 /* offset */, 0 /* x_in_offset */ };
