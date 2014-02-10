@@ -42,42 +42,18 @@ void ditfft2(float *X_real, float *X_imag, float *x_in, int N, int step, int x_i
 	}
 }
 
-//int main(int argc, char *argv[]) {
-//	if(argc < 2) {
-//		printf("Specify size.\n");
-//		exit(0);
-//	}
-//	int N = atoi(argv[1]);
-//	float *x_in = (float*)malloc(sizeof(float) * N);
-//	float *X_real = (float*)malloc(sizeof(float) * N);
-//	float *X_imag = (float*)malloc(sizeof(float) * N);
-//	
-//	for(int i=0;i<N;i++) {
-//		x_in[i] = 0;
-//	}
-//	x_in[1] = 1;
-//	x_in[3] = 2;
-//	x_in[6] = 5;
-//	
-//	ditfft2(X_real, X_imag, x_in, N, 1);
-//
-//	for(int i=0;i<N;i++) {
-//		//printf("%d [%f + %fi]\n",i,X_real[i],X_imag[i]);
-//	}
-//}
 
 #define __OCR__
 #include "ocr.h"
 
-// ex1: Create an EDT
-
 ocrGuid_t fftEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
-    // Use macros from compat.h for fsim/ocr compatibility
+	// Use macros from compat.h for fsim/ocr compatibility
 	int N = paramv[0];
+	int iterations = paramv[1];
 	float *x_in = (float*)malloc(sizeof(float) * N);
 	float *X_real = (float*)malloc(sizeof(float) * N);
 	float *X_imag = (float*)malloc(sizeof(float) * N);
-	int i;
+	int i,j;
 	
 	for(i=0;i<N;i++) {
 		x_in[i] = 0;
@@ -86,15 +62,21 @@ ocrGuid_t fftEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
 	//x_in[3] = 2;
 	//x_in[6] = 5;
 
-	ditfft2(X_real, X_imag, x_in, N, 1, 0);
+	for(i=0;i<iterations;i++) {
+		for(j=0;j<N;j++) {
+			X_real[i] = 0;
+			X_imag[i] = 0;
+		}
+		ditfft2(X_real, X_imag, x_in, N, 1, 0);
+	}
 
 	//for(i=0;i<N;i++) {
 	//	PRINTF("%d [%f + %fi]\n",i,X_real[i],X_imag[i]);
 	//}
 	
 
-    ocrShutdown(); // This is the last EDT to execute
-    return NULL_GUID;
+	ocrShutdown(); // This is the last EDT to execute
+	return NULL_GUID;
 }
 
 ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
@@ -112,19 +94,22 @@ ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
 	}
 
 	u64 N = pow(2, strtol(getArgv(depv[0].ptr,1),NULL,10) );
+	u64 iterations = (argc > 2 ? strtol(getArgv(depv[0].ptr,2),NULL,10) : 1);
 
-    ocrGuid_t tempGuid;
-    ocrEdtTemplateCreate(&tempGuid, &fftEdt, 1, 0);
-    
+	ocrGuid_t tempGuid;
+	ocrEdtTemplateCreate(&tempGuid, &fftEdt, 2, 0);
+	
+	PRINTF("Running %d iterations\n",iterations);
 	PRINTF("sizeof(ocrGuid_t): %d\n",sizeof(ocrGuid_t));
 	PRINTF("paramc: %u\n",paramc);
 	for(i=0;i<paramc;i++) {
 		PRINTF("%ul\n",paramv[i]);
 	}
 
+	u64 params[2] = { N, iterations };
 
-    ocrGuid_t edtGuid;
-    ocrEdtCreate(&edtGuid, tempGuid, EDT_PARAM_DEF, &N, EDT_PARAM_DEF, NULL_GUID, EDT_PROP_NONE, NULL_GUID, NULL);
-    //END-TODO
-    return NULL_GUID;
+	ocrGuid_t edtGuid;
+	ocrEdtCreate(&edtGuid, tempGuid, EDT_PARAM_DEF, params, EDT_PARAM_DEF, NULL_GUID, EDT_PROP_NONE, NULL_GUID, NULL);
+	//END-TODO
+	return NULL_GUID;
 }
