@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configurationDescriptor version="90">
+  <logicalFolder name="root" displayName="root" projectFiles="true" kind="ROOT">
+    <df root="../../src" name="0">
+      <in>CG.cpp</in>
+      <in>CG.hpp</in>
+      <in>CGData.hpp</in>
+      <in>CG_ref.cpp</in>
+      <in>CG_ref.hpp</in>
+      <in>ComputeDotProduct.cpp</in>
+      <in>ComputeDotProduct.hpp</in>
+      <in>ComputeDotProduct_ref.cpp</in>
+      <in>ComputeDotProduct_ref.hpp</in>
+      <in>ComputeMG.cpp</in>
+      <in>ComputeMG.hpp</in>
+      <in>ComputeMG_ref.cpp</in>
+      <in>ComputeMG_ref.hpp</in>
+      <in>ComputeProlongation_ref.cpp</in>
+      <in>ComputeProlongation_ref.hpp</in>
+      <in>ComputeResidual.cpp</in>
+      <in>ComputeResidual.hpp</in>
+      <in>ComputeRestriction_ref.cpp</in>
+      <in>ComputeRestriction_ref.hpp</in>
+      <in>ComputeSPMV.cpp</in>
+      <in>ComputeSPMV.hpp</in>
+      <in>ComputeSPMV_ref.cpp</in>
+      <in>ComputeSPMV_ref.hpp</in>
+      <in>ComputeSYMGS.cpp</in>
+      <in>ComputeSYMGS.hpp</in>
+      <in>ComputeSYMGS_ref.cpp</in>
+      <in>ComputeSYMGS_ref.hpp</in>
+      <in>ComputeWAXPBY.cpp</in>
+      <in>ComputeWAXPBY.hpp</in>
+      <in>ComputeWAXPBY_ref.cpp</in>
+      <in>ComputeWAXPBY_ref.hpp</in>
+      <in>ExchangeHalo.cpp</in>
+      <in>ExchangeHalo.hpp</in>
+      <in>GenerateCoarseProblem.cpp</in>
+      <in>GenerateCoarseProblem.hpp</in>
+      <in>GenerateGeometry.cpp</in>
+      <in>GenerateGeometry.hpp</in>
+      <in>GenerateProblem.cpp</in>
+      <in>GenerateProblem.hpp</in>
+      <in>Geometry.hpp</in>
+      <in>MGData.hpp</in>
+      <in>OptimizeProblem.cpp</in>
+      <in>OptimizeProblem.hpp</in>
+      <in>ReadHpcgDat.cpp</in>
+      <in>ReadHpcgDat.hpp</in>
+      <in>ReportResults.cpp</in>
+      <in>ReportResults.hpp</in>
+      <in>SetupHalo.cpp</in>
+      <in>SetupHalo.hpp</in>
+      <in>SparseMatrix.hpp</in>
+      <in>TestCG.cpp</in>
+      <in>TestCG.hpp</in>
+      <in>TestNorms.cpp</in>
+      <in>TestNorms.hpp</in>
+      <in>TestSymmetry.cpp</in>
+      <in>TestSymmetry.hpp</in>
+      <in>Vector.hpp</in>
+      <in>WriteProblem.cpp</in>
+      <in>WriteProblem.hpp</in>
+      <in>YAML_Doc.cpp</in>
+      <in>YAML_Doc.hpp</in>
+      <in>YAML_Element.cpp</in>
+      <in>YAML_Element.hpp</in>
+      <in>finalize.cpp</in>
+      <in>hpcg.hpp</in>
+      <in>init.cpp</in>
+      <in>mytimer.cpp</in>
+      <in>mytimer.hpp</in>
+    </df>
+  </logicalFolder>
+  <projectmakefile>../Makefile</projectmakefile>
+  <confs>
+    <conf name="Default" type="0">
+      <toolsSet>
+        <developmentServer>localhost</developmentServer>
+        <platform>2</platform>
+      </toolsSet>
+      <compile>
+        <compiledirpicklist>
+          <compiledirpicklistitem>.</compiledirpicklistitem>
+          <compiledirpicklistitem>${AUTO_FOLDER}</compiledirpicklistitem>
+        </compiledirpicklist>
+        <compiledir>${AUTO_FOLDER}</compiledir>
+        <compilecommandpicklist>
+          <compilecommandpicklistitem>${MAKE} ${ITEM_NAME}.o</compilecommandpicklistitem>
+          <compilecommandpicklistitem>${AUTO_COMPILE}</compilecommandpicklistitem>
+        </compilecommandpicklist>
+        <compilecommand>${AUTO_COMPILE}</compilecommand>
+      </compile>
+      <dbx_gdbdebugger version="1">
+        <gdb_pathmaps>
+        </gdb_pathmaps>
+        <gdb_interceptlist>
+          <gdbinterceptoptions gdb_all="false" gdb_unhandled="true" gdb_unexpected="true"/>
+        </gdb_interceptlist>
+        <gdb_options>
+          <DebugOptions>
+            <option name="gdb_source_dirs"
+                    value="/home/commlaptop/projects/hpcg-1.1/src:/home/commlaptop/projects/hpcg-1.1/OCR_BUILD/src"/>
+            <option name="debug_dir"
+                    value="/home/commlaptop/projects/hpcg-1.1/OCR_BUILD/bin"/>
+          </DebugOptions>
+        </gdb_options>
+        <gdb_buildfirst gdb_buildfirst_overriden="false" gdb_buildfirst_old="false"/>
+      </dbx_gdbdebugger>
+      <nativedebugger version="1">
+        <engine>gdb</engine>
+      </nativedebugger>
+      <runprofile version="9">
+        <runcommandpicklist>
+          <runcommandpicklistitem>"${OUTPUT_PATH}"</runcommandpicklistitem>
+        </runcommandpicklist>
+        <runcommand>"${OUTPUT_PATH}"</runcommand>
+        <rundir>/home/commlaptop/projects/hpcg-1.1/OCR_BUILD/bin</rundir>
+        <buildfirst>false</buildfirst>
+        <terminal-type>0</terminal-type>
+        <remove-instrumentation>0</remove-instrumentation>
+        <environment>
+          <variable name="OCR_INSTALL" value="/home/commlaptop/ocr/ocr-install"/>
+          <variable name="LD_LIBRARY_PATH" value="/home/commlaptop/ocr/ocr-install/lib"/>
+          <variable name="INSTALL_ROOT" value="/home/commlaptop/ocr/ocr-install"/>
+          <variable name="OCR_ROOT" value="/home/commlaptop/ocr/ocr-install"/>
+          <variable name="OCR_CONFIG"
+                    value="/home/commlaptop/ocr/ocr-install/config/default.cfg"/>
+        </environment>
+      </runprofile>
+    </conf>
+  </confs>
+</configurationDescriptor>
