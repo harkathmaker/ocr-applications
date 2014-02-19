@@ -8,6 +8,12 @@
 #include <iostream>
 #include <cmath>
 
+#ifndef __OCR__
+#define __OCR__
+#endif
+
+#include <ocr.h>
+
 #include "matrix.h"
 
 #define RESIDUAL_LIMIT 1.0e-9
@@ -17,16 +23,15 @@ using namespace std;
 //do error checks later
 Matrix* conjugateGradient(Matrix *A, Matrix *x, Matrix *B)
 {
-	Matrix *r_old;
 	Matrix *r_new;
 	Matrix *p_new;
 	Matrix *x_new;
-	Matrix bar = Matrix(x);
+	Matrix bar(x);
 	Matrix *x_old = &bar;
 	Matrix *Ax = matrixProduct(A, x_old);
-	r_old = matrixSubtract(B, Ax);
+	Matrix *r_old = matrixSubtract(B, Ax);
 	delete Ax;
-	Matrix foo = Matrix(r_old);
+	Matrix foo(r_old);
 	Matrix *p_old = &foo;
 
 	int k = 0;
@@ -92,7 +97,9 @@ Matrix* conjugateGradient(Matrix *A, Matrix *x, Matrix *B)
 }
 
 
-int main(int argc, char** argv) {
+//int main(int argc, char** argv) {
+extern "C" ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
+	//Test values
 	Matrix A(2, 2);
 	A.setValue(0, 0, 4.0f);
 	A.setValue(0, 1, 1.0f);
@@ -109,6 +116,8 @@ int main(int argc, char** argv) {
 	cout << "Solution:" << endl;
 	cout << fishy->getValue(0,0) << endl;
 	cout << fishy->getValue(1,0) << endl;
-	return 0;
+	
+	ocrShutdown();
+	return NULL_GUID;
 }
 
