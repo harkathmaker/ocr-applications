@@ -1,4 +1,6 @@
-// Serial version of Cooley-Tukey FFT in plain C.
+// OCR implementation of the Cooley-Tukey algorithm with simple recursion.
+// Each StartEDT delegates its work to three children - two StartEDTs on half the data each,
+// and a EndEDT to multiply all coefficients by the twiddle factors.
 //
 
 #define _USE_MATH_DEFINES
@@ -7,44 +9,8 @@
 #include <stdlib.h>
 #include <math.h>
 
-//#define PI 3.1415926
-
-void ditfft2(float *X_real, float *X_imag, float *x_in, int N, int step) {
-	if(N == 1) {
-		X_real[0] = x_in[0];
-		X_imag[0] = 0;
-	} else {
-		// DFT even side
-		ditfft2(X_real, X_imag, x_in, N/2, 2 * step);
-		ditfft2(X_real+N/2, X_imag+N/2, x_in+step, N/2, 2 * step);
-		int k;
-		for(k=0;k<N/2;k++) {
-			float t_real = X_real[k];
-			float t_imag = X_imag[k];
-			double twiddle_real;
-			double twiddle_imag;
-			twiddle_imag = sin(-2 * M_PI * k / N);
-			twiddle_real = cos(-2 * M_PI * k / N);
-			float xr = X_real[k+N/2];
-			float xi = X_imag[k+N/2];
-
-			// (a+bi)(c+di) = (ac - bd) + (bc + ad)i
-			X_real[k] = t_real +
-				(twiddle_real*xr - twiddle_imag*xi);
-			X_imag[k] = t_imag +
-				(twiddle_imag*xr + twiddle_real*xi);
-			X_real[k+N/2] = t_real -
-				(twiddle_real*xr - twiddle_imag*xi);
-			X_imag[k+N/2] = t_imag -
-				(twiddle_imag*xr + twiddle_real*xi);
-		}
-	}
-}
-
 #define __OCR__
 #include "ocr.h"
-
-// ex1: Create an EDT
 
 ocrGuid_t fftStartEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
 	// Use macros from compat.h for fsim/ocr compatibility
@@ -73,7 +39,6 @@ ocrGuid_t fftStartEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
 	//}
 	//}
 
-	//ditfft2(X_real, X_imag, x_in, N, 1);
 	if(N == 1) {
 		X_real[0] = x_in[x_in_offset];
 		X_imag[0] = 0;
@@ -88,8 +53,6 @@ ocrGuid_t fftStartEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
 		ocrEdtCreate(&edtGuid, startGuid, EDT_PARAM_DEF, childParamv, EDT_PARAM_DEF, &dataGuid, EDT_PROP_FINISH, NULL_GUID, &finishEventGuid);
 		ocrEdtCreate(&edtGuid2, startGuid, EDT_PARAM_DEF, childParamv2, EDT_PARAM_DEF, &dataGuid, EDT_PROP_FINISH, NULL_GUID, &finishEventGuid2);
 		//PRINTF("finishEventGuid after create: %lu\n",finishEventGuid);
-		//ditfft2(X_real, X_imag, x_in, N/2, 2 * step);
-		//ditfft2(X_real+N/2, X_imag+N/2, x_in+step, N/2, 2 * step);
 
 		ocrGuid_t endDependencies[3] = { dataGuid, finishEventGuid, finishEventGuid2 };
 		// Do calculations after having divided and conquered
@@ -112,7 +75,7 @@ ocrGuid_t fftEndEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
 	float *x_in = (float*)data+offset;
 	float *X_real = (float*)(data+offset + N*step);
 	float *X_imag = (float*)(data+offset + 2*N*step);
-	//PRINTF("Reached end phase for step %d\n",step);
+	PRINTF("Reached end phase for step %d\n",step);
 	//PRINTF("paramc: %d\n",paramc);
 
 	int k;
@@ -157,6 +120,7 @@ ocrGuid_t finalPrintEdt(u32 paramc, u64 *paramv, u32 depc, ocrEdtDep_t depv[]) {
 	float *X_real = (float*)(data+offset + N*step);
 	float *X_imag = (float*)(data+offset + 2*N*step);
 
+	//sleep(5);
 	//for(i=0;i<N;i++) {
 	//	PRINTF("%d [%f , %fi]\n",i,X_real[i],X_imag[i]);
 	//}
@@ -165,15 +129,12 @@ ocrGuid_t finalPrintEdt(u32 paramc, u64 *paramv, u32 depc, ocrEdtDep_t depv[]) {
 }
 
 ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
-	//TODO Create an EDT template for 'appEdt', no argument, no dependence
 	ocrGuid_t startTempGuid,endTempGuid,printTempGuid;
 	ocrEdtTemplateCreate(&startTempGuid, &fftStartEdt, 6, 1);
 	ocrEdtTemplateCreate(&endTempGuid, &fftEndEdt, 6, 3);
 	ocrEdtTemplateCreate(&printTempGuid, &finalPrintEdt, 6, 2);
-	
-	//END-TODO
 
-	int N = 524288;
+	int N = 8;
 	// x_in, X_real, and X_imag in a contiguous block
 	float *x;
 	ocrGuid_t dataGuid;
@@ -198,16 +159,15 @@ ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
 		PRINTF("%lu\n",paramv[i]);
 	}
 
-	//sleep(1);
 
 	// Create an EDT out of the EDT template
 	ocrGuid_t edtGuid, printEdtGuid, edtEventGuid;
-	ocrEdtCreate(&edtGuid, startTempGuid, EDT_PARAM_DEF, edtParamv, EDT_PARAM_DEF, NULL_GUID, EDT_PROP_FINISH, NULL_GUID, &edtEventGuid);
+	ocrEdtCreate(&edtGuid, startTempGuid, EDT_PARAM_DEF, edtParamv, EDT_PARAM_DEF, &dataGuid, EDT_PROP_FINISH, NULL_GUID, &edtEventGuid);
 
 	ocrGuid_t finishDependencies[2] = { edtEventGuid, dataGuid };
 	ocrEdtCreate(&printEdtGuid, printTempGuid, EDT_PARAM_DEF, edtParamv, EDT_PARAM_DEF, finishDependencies, EDT_PROP_NONE, NULL_GUID, NULL);
 	
-	ocrAddDependence(dataGuid, edtGuid, 0, DB_MODE_ITW);
+	//ocrAddDependence(dataGuid, edtGuid, 0, DB_MODE_ITW);
 
 	return NULL_GUID;
 }

@@ -1,4 +1,5 @@
-// Serial version of Cooley-Tukey FFT in plain C.
+// Serial version of Cooley-Tukey FFT in OCR framework.
+// All logic is performed in a single EDT with no parallelism.
 //
 
 #define _USE_MATH_DEFINES
@@ -7,7 +8,6 @@
 #include <stdlib.h>
 #include <math.h>
 
-//#define PI 3.1415926
 
 void ditfft2(float *X_real, float *X_imag, float *x_in, int N, int step, int x_in_offset) {
 	if(N == 1) {
