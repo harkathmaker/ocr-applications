@@ -9,26 +9,29 @@
 
 using namespace std;
 
-Matrix::Matrix() {
+Matrix::Matrix()
+{
 	Matrix(3, 3);
 }
 
-Matrix::Matrix(int row, int column) {
+Matrix::Matrix(int row, int column)
+{
 	this->columns = column;
 	this->rows = row;
 	if (columns <= 0) this->columns = 1;
 	if (rows <= 0) this->rows = 1;
-	DBCREATE(&dataBlock, (void**)&mat, this->columns * this->rows * sizeof(double), 
-             DB_PROP_NONE, NULL_GUID, NO_ALLOC);
+	DBCREATE(&dataBlock, (void**) &mat, this->columns * this->rows * sizeof (double),
+		DB_PROP_NONE, NULL_GUID, NO_ALLOC);
 	for (int i = 0; i < (this->columns * this->rows); i++)
 		mat[i] = 0.0f;
 }
 
-Matrix::Matrix(Matrix *mat) {
+Matrix::Matrix(Matrix *mat)
+{
 	columns = mat->getColumns();
 	rows = mat->getRows();
-	DBCREATE(&dataBlock, (void**)&this->mat, this->columns * this->rows * sizeof(double), 
-             DB_PROP_NONE, NULL_GUID, NO_ALLOC);
+	DBCREATE(&dataBlock, (void**) & this->mat, this->columns * this->rows * sizeof (double),
+		DB_PROP_NONE, NULL_GUID, NO_ALLOC);
 	for (int j = 0; j < rows; j++)
 		for (int i = 0; i < columns; i++)
 			setValue(j, i, mat->getValue(j, i));
@@ -39,12 +42,12 @@ Matrix::~Matrix()
 	//delete mat? wont work for some reason
 }
 
- int Matrix::getRows()
+int Matrix::getRows()
 {
 	return rows;
 }
 
- int Matrix::getColumns()
+int Matrix::getColumns()
 {
 	return columns;
 }
@@ -53,20 +56,19 @@ double Matrix::getValue(int row, int column)
 {
 	if (column >= columns) return 0.0f;
 	if (row >= rows) return 0.0f;
-	return mat[row*columns + column];
+	return mat[row * columns + column];
 }
 
 void Matrix::setValue(int row, int column, double value)
 {
 	if ((column < columns) && (row < rows))
-		mat[row*columns + column] = value;
+		mat[row * columns + column] = value;
 }
 
-ocrGuid_t Matrix::getDataBlock() {
+ocrGuid_t Matrix::getDataBlock()
+{
 	return dataBlock;
 }
-
-
 
 Matrix* matrixScale(Matrix *A, double scalar)
 {
@@ -80,15 +82,15 @@ Matrix* matrixScale(Matrix *A, double scalar)
 	return r;
 }
 
-double* matrixScale(ocrGuid_t *dataBlock, double *A_mat, int A_rows, int A_columns, double scalar)
+double* matrixScale(ocrGuid_t *dataBlock, double *A_mat, int A_rows, int A_columns, double *scalar)
 {
 	double* r;
-	DBCREATE(dataBlock, (void**)&r, A_columns * A_rows * sizeof(double), 
-             DB_PROP_NONE, NULL_GUID, NO_ALLOC);
+	DBCREATE(dataBlock, (void**) &r, A_columns * A_rows * sizeof (double),
+		DB_PROP_NONE, NULL_GUID, NO_ALLOC);
 	for (int row = 0; row < A_rows; row++) {
 		for (int column = 0; column < A_columns; column++) {
-			double v = A_mat[row*A_columns+column];
-			r[row*A_columns+column] = v * scalar;
+			double v = A_mat[row * A_columns + column];
+			r[row * A_columns + column] = v * scalar[0];
 		}
 	}
 	return r;
@@ -113,19 +115,19 @@ Matrix* matrixProduct(Matrix *A, Matrix *B)
 }
 
 double* matrixProduct(ocrGuid_t *dataBlock, double *A_mat, int A_rows,
-                      int A_columns, double *B_mat, int B_rows, int B_columns)
+	int A_columns, double *B_mat, int B_rows, int B_columns)
 {
 	if (A_columns != B_rows) return NULL;
 
 	double* r;
-	DBCREATE(dataBlock, (void**)&r, A_rows * B_columns * sizeof(double), 
-             DB_PROP_NONE, NULL_GUID, NO_ALLOC);
+	DBCREATE(dataBlock, (void**) &r, A_rows * B_columns * sizeof (double),
+		DB_PROP_NONE, NULL_GUID, NO_ALLOC);
 
 	for (int i = 0; i < A_rows; i++) {
 		for (int j = 0; j < A_columns; j++) {
-			r[i*B_columns+j] = 0;
+			r[i * B_columns + j] = 0;
 			for (int x = 0; x < A_columns; x++) {
-				r[i*B_columns+j] += A_mat[i*A_columns+x] * B_mat[x*B_columns+j];
+				r[i * B_columns + j] += A_mat[i * A_columns + x] * B_mat[x * B_columns + j];
 			}
 		}
 	}
@@ -147,12 +149,12 @@ Matrix* matrixTranspose(Matrix *A)
 double* matrixTranspose(ocrGuid_t *dataBlock, double *A_mat, int A_rows, int A_columns)
 {
 	double* r;
-	DBCREATE(dataBlock, (void**)&r, A_columns * A_rows * sizeof(double), 
-             DB_PROP_NONE, NULL_GUID, NO_ALLOC);
+	DBCREATE(dataBlock, (void**) &r, A_columns * A_rows * sizeof (double),
+		DB_PROP_NONE, NULL_GUID, NO_ALLOC);
 	for (int row = 0; row < A_rows; row++) {
 		for (int column = 0; column < A_columns; column++) {
-			double v = A_mat[row*A_columns+column];
-			r[column*A_columns+row] = v;
+			double v = A_mat[row * A_columns + column];
+			r[column * A_columns + row] = v;
 		}
 	}
 	return r;
@@ -174,18 +176,16 @@ Matrix* matrixAdd(Matrix *A, Matrix *B)
 }
 
 double* matrixAdd(ocrGuid_t *dataBlock, double *A_mat, int A_rows,
-                  int A_columns, double *B_mat, int B_rows, int B_columns)
+	int A_columns, double *B_mat)
 {
-	if (A_rows != B_rows) return NULL;
-	if (A_columns != B_columns) return NULL;
 	double* r;
-	DBCREATE(dataBlock, (void**)&r, A_columns * A_rows * sizeof(double), 
-             DB_PROP_NONE, NULL_GUID, NO_ALLOC);
+	DBCREATE(dataBlock, (void**) &r, A_columns * A_rows * sizeof (double),
+		DB_PROP_NONE, NULL_GUID, NO_ALLOC);
 	for (int row = 0; row < A_rows; row++) {
 		for (int column = 0; column < A_columns; column++) {
-			double valA = A_mat[row*A_columns+column];
-			double valB = B_mat[row*A_columns+column];
-			r[row*A_columns+column] = valA + valB;
+			double valA = A_mat[row * A_columns + column];
+			double valB = B_mat[row * A_columns + column];
+			r[row * A_columns + column] = valA + valB;
 		}
 	}
 	return r;
@@ -207,18 +207,16 @@ Matrix* matrixSubtract(Matrix *A, Matrix *B)
 }
 
 double* matrixSubtract(ocrGuid_t *dataBlock, double *A_mat, int A_rows,
-                       int A_columns, double *B_mat, int B_rows, int B_columns)
+	int A_columns, double *B_mat)
 {
-	if (A_rows != B_rows) return NULL;
-	if (A_columns != B_columns) return NULL;
 	double* r;
-	DBCREATE(dataBlock, (void**)&r, A_columns * A_rows * sizeof(double), 
-             DB_PROP_NONE, NULL_GUID, NO_ALLOC);
+	DBCREATE(dataBlock, (void**) &r, A_columns * A_rows * sizeof (double),
+		DB_PROP_NONE, NULL_GUID, NO_ALLOC);
 	for (int row = 0; row < A_rows; row++) {
 		for (int column = 0; column < A_columns; column++) {
-			double valA = A_mat[row*A_columns+column];
-			double valB = B_mat[row*A_columns+column];
-			r[row*A_columns+column] = valA - valB;
+			double valA = A_mat[row * A_columns + column];
+			double valB = B_mat[row * A_columns + column];
+			r[row * A_columns + column] = valA - valB;
 		}
 	}
 	return r;
