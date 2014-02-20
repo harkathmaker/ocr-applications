@@ -14,9 +14,9 @@
 #endif
 
 #ifdef NTIMES
-#if NTIMES <= 1
-#	define NTIMES	2
-#endif
+	#if NTIMES <= 1
+	#	define NTIMES	2
+	#endif
 #endif
 
 #ifndef NTIMES
@@ -50,7 +50,6 @@ static STREAM_TYPE	*a, *b, *c;
 static double	avgtime[4] = {0}, maxtime[4] = {0},
 		mintime[4] = {FLT_MAX,FLT_MAX,FLT_MAX,FLT_MAX};
 
-
 static char *label[4] = {"Copy:      ", "Scale:     ", "Add:       ", "Triad:     "};
 
 static double	bytes[4] = {
@@ -61,17 +60,6 @@ static double	bytes[4] = {
 };
 
 extern double mysecond();
-extern void checkSTREAMresults();
-#ifdef TUNED
-extern void tuned_STREAM_Copy();
-extern void tuned_STREAM_Scale(STREAM_TYPE scalar);
-extern void tuned_STREAM_Add();
-extern void tuned_STREAM_Triad(STREAM_TYPE scalar);
-#endif
-#ifdef _OPENMP
-extern int omp_get_num_threads();
-#endif
-
 
 ocrGuid_t copy(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
 	ssize_t j;
@@ -381,12 +369,10 @@ ocrGuid_t summaryAndCheckEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv
 	bAvgErr = bSumErr / (STREAM_TYPE) STREAM_ARRAY_SIZE;
 	cAvgErr = cSumErr / (STREAM_TYPE) STREAM_ARRAY_SIZE;
 
-	if (sizeof(STREAM_TYPE) == 4) {
+	if (sizeof(STREAM_TYPE) == 4)
 		epsilon = 1.e-6;
-	}
-	else if (sizeof(STREAM_TYPE) == 8) {
+	else if (sizeof(STREAM_TYPE) == 8)
 		epsilon = 1.e-13;
-	}
 	else {
 		PRINTF("WEIRD: sizeof(STREAM_TYPE) = %lu\n",sizeof(STREAM_TYPE));
 		epsilon = 1.e-6;
@@ -458,18 +444,47 @@ ocrGuid_t summaryAndCheckEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv
 	PRINTF ("	Observed a(1), b(1), c(1): %-10.2f %-10.2f %-10.2f \n", a[1], b[1], c[1]);
 	PRINTF ("	Rel Errors on a, b, c    : %-10.2e %-10.2e %-10.2e \n", abs(aAvgErr/aj), abs(bAvgErr/bj), abs(cAvgErr/cj));
 #endif
-	return NULL_GUID;
-}
-
-ocrGuid_t terminateEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
+	printf(HLINE);
 	PRINTF("OCR_SHUTDOWN\n");
 	ocrShutdown(); 
 	return NULL_GUID;
 }
 
 ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
+	int quantum, checktick();
+	int BytesPerWord;
+	int k;
+	ssize_t j;
+	double t, times[4][NTIMES];
+
+	/* --- SETUP --- determine precision and check timing --- */
+	printf(HLINE);
+	printf("STREAM version $Revision: 5.10 $\n");
+	printf(HLINE);
+	BytesPerWord = sizeof(STREAM_TYPE);
+	printf("This system uses %d bytes per array element.\n",
+	BytesPerWord);
+	printf(HLINE);
+#ifdef N
+	printf("*****  WARNING: ******\n");
+	printf("      It appears that you set the preprocessor variable N when compiling this code.\n");
+	printf("      This version of the code uses the preprocesor variable STREAM_ARRAY_SIZE to control the array size\n");
+	printf("      Reverting to default value of STREAM_ARRAY_SIZE=%llu\n",(unsigned long long) STREAM_ARRAY_SIZE);
+	printf("*****  WARNING: ******\n");
+#endif
+	printf("Array size = %llu (elements), Offset = %d (elements)\n" , (unsigned long long) STREAM_ARRAY_SIZE, OFFSET);
+	printf("Memory per array = %.1f MiB (= %.1f GiB).\n", 
+	BytesPerWord * ((double) STREAM_ARRAY_SIZE / 1024.0/1024.0),
+	BytesPerWord * ((double) STREAM_ARRAY_SIZE / 1024.0/1024.0/1024.0));
+	printf("Total memory required = %.1f MiB (= %.1f GiB).\n",
+	(3.0 * BytesPerWord) * ((double) STREAM_ARRAY_SIZE / 1024.0/1024.),
+	(3.0 * BytesPerWord) * ((double) STREAM_ARRAY_SIZE / 1024.0/1024./1024.));
+	printf("Each kernel will be executed %d times.\n", NTIMES);
+	printf(" The *best* time for each kernel (excluding the first iteration)\n"); 
+	printf(" will be used to compute the reported bandwidth.\n");
+
+	/* Get initial value for system clock. */
 	// DB setup for a, b, c
-	ssize_t j, k;
 	ocrGuid_t aGuid;
 	ocrGuid_t bGuid;
 	ocrGuid_t cGuid;
@@ -481,10 +496,36 @@ ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
 		b[j] = 2.0;
 		c[j] = 0.0;
 	}
+	printf(HLINE);
+	if ((quantum = checktick()) >= 1)
+		printf("Your clock granularity/precision appears to be %d microseconds.\n", quantum);
+	else {
+		printf("Your clock granularity appears to be less than one microsecond.\n");
+		quantum = 1;
+	}
+	t = mysecond();
+	for (j = 0; j < STREAM_ARRAY_SIZE; j++)
+		a[j] = 2.0E0 * a[j];
+	t = 1.0E6 * (mysecond() - t);
+
+	printf("Each test below will take on the order of %d microseconds.\n", (int) t);
+	printf("   (= %d clock ticks)\n", (int) (t/quantum));
+	printf("Increase the size of the arrays if this shows that\n");
+	printf("you are not getting at least 20 clock ticks per test.\n");
+	printf(HLINE);
+
+	printf("WARNING -- The above is only a rough guideline.\n");
+	printf("For best results, please be sure you know the\n");
+	printf("precision of your system timer.\n");
+	printf(HLINE);
+
+
+
+	/* --- INITIALIZING MAIN LOOP --- */
+
 	// Event signalling last EDT has finished 
 	ocrGuid_t lastEDTDoneEventGuid;
 	ocrEventCreate(&lastEDTDoneEventGuid, OCR_EVENT_ONCE_T, false);
-
 
 	// Paramv setup where paramv[0] = current iteration, paramv[1] = max iteration, paramv[2] = Size of DB
 	u64 nparamv[4];
@@ -492,7 +533,6 @@ ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
 	nparamv[1] = NTIMES;
 	nparamv[2] = STREAM_ARRAY_SIZE+OFFSET;
 	nparamv[3] = lastEDTDoneEventGuid;
-
 
 	// DB packaging containing a, b, c, and timing DBs
 	STREAM_TYPE ** guidArray;
@@ -505,12 +545,10 @@ ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
 		ocrGuid_t timingGuid;
 		double  * timingArray;
 		DBCREATE(&timingGuid, (void **) &timingArray, sizeof(double)*NUM_OP, 0, NULL_GUID, NO_ALLOC);
-		for (k = 0; k < NUM_OP; k++) {
+		for (k = 0; k < NUM_OP; k++)
 			timingArray[k] = 0;
-		}
 		guidArray[3 + j] = timingArray;
 	}
-
 
 	// EDT Template for iterator
 	ocrGuid_t iterTemplateGuid;
@@ -521,27 +559,45 @@ ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
 	ocrEdtCreate(&iterGuid, iterTemplateGuid, EDT_PARAM_DEF, nparamv, EDT_PARAM_DEF, &guidArrayGuid,
 		EDT_PROP_NONE, NULL_GUID, NULL);
 
-
 	// EDT Template for summary and check results
 	ocrGuid_t summaryAndCheckTemplateGuid;
 	ocrEdtTemplateCreate(&summaryAndCheckTemplateGuid, summaryAndCheckEdt, 0, 1);
 
 	// EDT for summary and check results
 	ocrGuid_t summaryAndCheckGuid;
-	ocrGuid_t summaryAndCheckOutput;
 	ocrEdtCreate(&summaryAndCheckGuid, summaryAndCheckTemplateGuid, EDT_PARAM_DEF, NULL, EDT_PARAM_DEF, &lastEDTDoneEventGuid,
-		EDT_PROP_NONE, NULL_GUID, &summaryAndCheckOutput);
+		EDT_PROP_NONE, NULL_GUID, NULL);
 
-
-	// EDT Template for terminate
-	ocrGuid_t terminateTemplateGuid;
-	ocrEdtTemplateCreate(&terminateTemplateGuid, terminateEdt, 0, 1);
-
-	// EDT for terminate
-	ocrGuid_t terminateGuid;
-	ocrEdtCreate(&terminateGuid, terminateTemplateGuid, EDT_PARAM_DEF, NULL, EDT_PARAM_DEF, &summaryAndCheckOutput,
-		EDT_PROP_FINISH, NULL_GUID, NULL);
 	return NULL_GUID;
+}
+
+
+# define M	20
+int checktick() {
+	int	i, minDelta, Delta;
+	double	t1, t2, timesfound[M];
+
+	/*  Collect a sequence of M unique time values from the system. */
+
+	for (i = 0; i < M; i++) {
+		t1 = mysecond();
+		while( ((t2=mysecond()) - t1) < 1.0E-6 );
+		timesfound[i] = t1 = t2;
+	}
+
+/*
+ * Determine the minimum difference between these M values.
+ * This result will be our estimate (in microseconds) for the
+ * clock granularity.
+ */
+
+	minDelta = 1000000;
+	for (i = 1; i < M; i++) {
+		Delta = (int)( 1.0E6 * (timesfound[i]-timesfound[i-1]));
+		minDelta = MIN(minDelta, MAX(Delta,0));
+	}
+
+	return(minDelta);
 }
 
 #include <sys/time.h>
