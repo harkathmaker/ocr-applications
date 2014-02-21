@@ -117,7 +117,7 @@ Matrix* matrixProduct(Matrix *A, Matrix *B)
 ocrGuid_t matrixProduct(ocrGuid_t *dataBlock, double *A_mat, int A_rows,
 	int A_columns, double *B_mat, int B_rows, int B_columns)
 {
-	if (A_columns != B_rows) return NULL;
+	if (A_columns != B_rows) return NULL_GUID;
 
 	double* r;
 	DBCREATE(dataBlock, (void**) &r, A_rows * B_columns * sizeof (double),
@@ -206,7 +206,7 @@ Matrix* matrixSubtract(Matrix *A, Matrix *B)
 	return r;
 }
 
-ocrGuid_t matrixSubtract(ocrGuid_t *dataBlock, double *A_mat, int A_rows,
+ocrGuid_t matrixSubtract(ocrGuid_t *dataBlock, double *A_mat, int A_rows, 
 	int A_columns, double *B_mat)
 {
 	double* r;
