@@ -23,7 +23,7 @@ extern "C" {
 
 #include "matrix.h"
 
-#define RESIDUAL_LIMIT 1.0e-9
+#define K_ITERATIONS 10
 
 using namespace std;
 
@@ -36,120 +36,113 @@ void sleep( time_t delay )
 	} while ((timer1 - timer0) < delay);
 }
 
-
 //Parameters: A_rows, A_columns
-//Dependencies: A_event, scalar_event (double), output_event
-//Output: Guid event satisfied with result
+//Dependencies: result_event, A_event, scalar_event (double)
+//Output: Guid data block with result
 
 extern "C" ocrGuid_t scaleEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[])
 {
-	ocrGuid_t e = depv[2].guid;
-	ocrGuid_t result;
-	double *a = (double*) depv[0].ptr;
-	double *b = (double*) depv[1].ptr;
-	matrixScale(&result, a, (int) paramv[0], (int) paramv[1], b);
-	ocrEventSatisfy(e, result);
-	return e;
+	ocrGuid_t result = depv[0].guid;
+	double *a = (double*) depv[1].ptr;
+	double *b = (double*) depv[2].ptr;
+	ocrGuid_t dataBlock;
+	matrixScale(&dataBlock, a, (int) paramv[0], (int) paramv[1], b);
+	ocrEventSatisfy(result, dataBlock);
+	return NULL_GUID;
 }
 
 //Parameters: A_rows, A_columns, B_rows, B_columns
-//Dependencies: A_event, B_event, output_event
-//Output: Guid event satisfied with result
+//Dependencies: result_event, A_event, B_event
+//Output: Guid data block with result
 
 extern "C" ocrGuid_t productEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[])
 {
-	ocrGuid_t e = depv[2].guid;
-	ocrGuid_t result;
-	matrixProduct(&result, (double*) depv[0].ptr, (int) paramv[0], (int) paramv[1],
-		(double*) depv[1].ptr, (int) paramv[2], (int) paramv[3]);
-	ocrEventSatisfy(e, result);
-	return e;
+	ocrGuid_t result = depv[0].guid;
+	ocrGuid_t dataBlock;
+	matrixProduct(&dataBlock, (double*) depv[1].ptr, (int) paramv[0], (int) paramv[1],
+		(double*) depv[2].ptr, (int) paramv[2], (int) paramv[3]);
+	ocrEventSatisfy(result, dataBlock);
+	return NULL_GUID;
 }
 
 //Parameters: A_rows, A_columns
-//Dependencies: A_event, output_event
-//Output: Guid event satisfied with result
+//Dependencies: result_event, A_event
+//Output: Guid data block with result
 
 extern "C" ocrGuid_t transposeEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[])
 {
-	ocrGuid_t e = depv[1].guid;
-	ocrGuid_t result;
-	matrixTranspose(&result, (double*) depv[0].ptr, (int) paramv[0], (int) paramv[1]);
-	ocrEventSatisfy(e, result);
-	return e;
+	ocrGuid_t result = depv[0].guid;
+	ocrGuid_t dataBlock;
+	matrixTranspose(&dataBlock, (double*) depv[1].ptr, (int) paramv[0], (int) paramv[1]);
+	ocrEventSatisfy(result, dataBlock);
+	return NULL_GUID;
 }
 
 //Parameters: A_rows, A_columns
-//Dependencies: A_event, B_event (A and B need same rows/columns), output_event
-//Output: Guid event satisfied with result
+//Dependencies: result_event, A_event, B_event (A and B need same rows/columns)
+//Output: Guid data block with result
 
 extern "C" ocrGuid_t addEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[])
 {
-	ocrGuid_t e = depv[2].guid;
-	ocrGuid_t result;
-	matrixAdd(&result, (double*) depv[0].ptr, (int) paramv[0], (int) paramv[1],
-		(double*) depv[1].ptr);
-	ocrEventSatisfy(e, result);
-	return e;
+	ocrGuid_t result = depv[0].guid;
+	ocrGuid_t dataBlock;
+	matrixAdd(&dataBlock, (double*) depv[1].ptr, (int) paramv[0], (int) paramv[1],
+		(double*) depv[2].ptr);
+	ocrEventSatisfy(result, dataBlock);
+	return NULL_GUID;
 }
 
 //Parameters: A_rows, A_columns
-//Dependencies: A_event, B_event (A and B need same rows/columns), output_event
-//Output: Guid event satisfied with result
+//Dependencies: result_event, A_event, B_event (A and B need same rows/columns)
+//Output: Guid data block with result
 
 extern "C" ocrGuid_t subtractEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[])
 {
-	ocrGuid_t e = depv[2].guid;
-	ocrGuid_t result;
-	matrixSubtract(&result, (double*) depv[0].ptr, (int) paramv[0], (int) paramv[1],
-		(double*) depv[1].ptr);
-	ocrEventSatisfy(e, result);
-	return e;
+	ocrGuid_t result = depv[0].guid;
+	ocrGuid_t dataBlock;
+	matrixSubtract(&dataBlock, (double*) depv[1].ptr, (int) paramv[0], (int) paramv[1],
+		(double*) depv[2].ptr);
+	ocrEventSatisfy(result, dataBlock);
+	return NULL_GUID;
 }
 
 //Parameters: None
-//Dependencies: A_event (double), B_event (double), output_event
-//Output: Guid event satisfied with result (double)
+//Dependencies: result_event, A_event (double), B_event (double)
+//Output: Guid data block with result (double)
 
 extern "C" ocrGuid_t divideEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[])
 {
-	ocrGuid_t e = depv[2].guid;
-	ocrGuid_t result;
+	ocrGuid_t result = depv[0].guid;
 	double* r;
-	DBCREATE(&result, (void**) &r, 1 * sizeof (double), DB_PROP_NONE, NULL_GUID, NO_ALLOC);
-	double* a = (double*) depv[0].ptr;
-	double* b = (double*) depv[1].ptr;
-	if (b[0] != 0.000000f) {
-		r[0] = a[0] / b[0];
-		ocrEventSatisfy(e, result);
-		return e;
-	} else {
-		r[0] = 0.0f;
-		ocrEventSatisfy(e, result);
-		return -1;
-	}
+	ocrGuid_t dataBlock;
+	DBCREATE(&dataBlock, (void**) &r, 1 * sizeof (double), DB_PROP_NONE, NULL_GUID, NO_ALLOC);
+	double* a = (double*) depv[1].ptr;
+	double* b = (double*) depv[2].ptr;
+	r[0] = a[0] / b[0];
+	ocrEventSatisfy(result, dataBlock);
+	return NULL_GUID;
 }
 
 //Parameters: x_rows
-//Dependencies: A_event, output_event
-//Output: Guid event satisfied
+//Dependencies: A_event
+//Output: NULL_GUID
 //Not thread safe
 extern "C" ocrGuid_t printEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[])
 {
-	ocrGuid_t e = depv[2].guid;
 	int rows = (int)paramv[0];
 	double* r = (double*)depv[0].ptr;
 
+	cout << "Solution:" << endl;
 	for (int i = 0; i < rows; i++)
 		cout << i << ",1: " << r[i] << endl;
-	
-	ocrEventSatisfy(e, NULL_GUID);
-	return e;
+
+	cout << "OCR Shutdown..." << endl;
+	ocrShutdown();
+	return NULL_GUID;
 }
 
-void createEdt(ocrGuid_t templateGuid, ocrGuid_t &outputGuid, ocrGuid_t A,
-	int A_rows, int A_columns, ocrGuid_t B = -1, int B_rows = -1,
-	int B_columns = -1)
+ocrGuid_t createEdt(ocrGuid_t templateGuid, ocrGuid_t &outputGuid,
+	int A_rows = 0, int A_columns = 0, int B_rows = 0, int B_columns = 0)
 {
 	u64 nparamv[4];
 	nparamv[0] = (u64) A_rows;
@@ -158,19 +151,16 @@ void createEdt(ocrGuid_t templateGuid, ocrGuid_t &outputGuid, ocrGuid_t A,
 	nparamv[3] = (u64) B_columns;
 	ocrGuid_t myEdt;
 	ocrEdtCreate(&myEdt, templateGuid, EDT_PARAM_DEF, nparamv, EDT_PARAM_DEF,
-		NULL, EDT_PROP_NONE, NULL_GUID, &outputGuid);
-	ocrAddDependence(A, myEdt, 0, DB_MODE_RO);
-	if (B != -1)
-		ocrAddDependence(B, myEdt, 1, DB_MODE_RO);
+		NULL_GUID, EDT_PROP_NONE, NULL_GUID, &outputGuid);
+	ocrAddDependence(outputGuid, myEdt, 0, DB_MODE_ITW);
+	return myEdt;
 }
 
-extern "C" ocrGuid_t CgEdt_StepB(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]);
+//Parameters: A_rows, A_columns, X_old_rows, X_old_columns, k, doneEvent
+//Dependencies: A_db, B_db, X_old_db, P_old_db, R_old_db
+//Output: Guid data block with result of x_new after K_ITERATIONS
 
-//Parameters: A_rows, A_columns, X_old_rows, X_old_columns, k
-//Dependencies: A_db, B_db, X_old_db, P_old_db, R_old_db, output_event
-//Output: Guid event satisfied with result of conjugate gradient
-
-extern "C" ocrGuid_t CgEdt_StepA(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[])
+extern "C" ocrGuid_t CgEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[])
 {
 	int A_rows = (int) paramv[0];
 	int A_columns = (int) paramv[1];
@@ -178,12 +168,19 @@ extern "C" ocrGuid_t CgEdt_StepA(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t 
 	int X_old_columns = (int) paramv[3];
 	int k = (int) paramv[4];
 
-	ocrGuid_t A = depv[0].guid;
-	ocrGuid_t B = depv[1].guid;
-	ocrGuid_t x_old = depv[2].guid;
-	ocrGuid_t p_old = depv[3].guid;
-	ocrGuid_t r_old = depv[4].guid;
-	ocrGuid_t e = depv[5].guid;
+	ocrGuid_t result = depv[0].guid;
+	ocrGuid_t A = depv[1].guid;
+	ocrGuid_t B = depv[2].guid;
+	ocrGuid_t x_old = depv[3].guid;
+	ocrGuid_t p_old = depv[4].guid;
+	ocrGuid_t r_old = depv[5].guid;
+	
+	cout << "k = " << k << endl;
+	
+	if (k == K_ITERATIONS) {
+		ocrEventSatisfy(result, x_old);
+		return NULL_GUID;
+	}
 
 	ocrGuid_t scaleEdtTemplate;
 	ocrEdtTemplateCreate(&scaleEdtTemplate, scaleEdt, 2, 3);
@@ -205,30 +202,30 @@ extern "C" ocrGuid_t CgEdt_StepA(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t 
 
 	ocrGuid_t rT;
 	ocrEventCreate(&rT, OCR_EVENT_IDEM_T, true);
-	createEdt(transposeEdtTemplate, rT, r_old, X_old_rows, X_old_columns);
+	ocrGuid_t edtA = createEdt(transposeEdtTemplate, rT, X_old_rows, X_old_columns);
 
 	ocrGuid_t rTr;
 	ocrEventCreate(&rTr, OCR_EVENT_IDEM_T, true);
-	createEdt(productEdtTemplate, rTr, rT, X_old_columns,
-		X_old_rows, r_old, X_old_rows, X_old_columns);
+	ocrGuid_t edtB = createEdt(productEdtTemplate, rTr, X_old_columns,
+		X_old_rows, X_old_rows, X_old_columns);
 
 	ocrGuid_t pT;
 	ocrEventCreate(&pT, OCR_EVENT_IDEM_T, true);
-	createEdt(transposeEdtTemplate, pT, p_old, X_old_rows, X_old_columns);
+	ocrGuid_t edtC = createEdt(transposeEdtTemplate, pT, X_old_rows, X_old_columns);
 
 	ocrGuid_t pTA;
 	ocrEventCreate(&pTA, OCR_EVENT_IDEM_T, true);
-	createEdt(productEdtTemplate, pTA, pT, X_old_columns,
-		X_old_rows, A, A_rows, A_columns);
+	ocrGuid_t edtD = createEdt(productEdtTemplate, pTA, X_old_columns,
+		X_old_rows, A_rows, A_columns);
 
 	ocrGuid_t pTAp;
 	ocrEventCreate(&pTAp, OCR_EVENT_IDEM_T, true);
-	createEdt(productEdtTemplate, pTAp, pTA, X_old_columns,
-		X_old_rows, p_old, X_old_rows, X_old_columns);
+	ocrGuid_t edtE = createEdt(productEdtTemplate, pTAp, X_old_columns,
+		X_old_rows, X_old_rows, X_old_columns);
 
 	ocrGuid_t alpha;
 	ocrEventCreate(&alpha, OCR_EVENT_IDEM_T, true);
-	createEdt(divideEdtTemplate, alpha, rTr, 1, 1, pTAp);
+	ocrGuid_t edtF = createEdt(divideEdtTemplate, alpha, 1, 1);
 
 	//ocrDbDestroy(rT);
 	//ocrDbDestroy(pT);
@@ -237,131 +234,54 @@ extern "C" ocrGuid_t CgEdt_StepA(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t 
 
 	ocrGuid_t ap;
 	ocrEventCreate(&ap, OCR_EVENT_IDEM_T, true);
-	createEdt(scaleEdtTemplate, ap, p_old, X_old_rows, X_old_columns, alpha);
+	ocrGuid_t edtG = createEdt(scaleEdtTemplate, ap, X_old_rows, X_old_columns);
 
 	ocrGuid_t x_new;
 	ocrEventCreate(&x_new, OCR_EVENT_IDEM_T, true);
-	createEdt(addEdtTemplate, x_new, x_old, X_old_rows, X_old_columns, ap);
+	ocrGuid_t edtH = createEdt(addEdtTemplate, x_new, X_old_rows, X_old_columns);
 
 	//ocrDbDestroy(ap);
 
 	ocrGuid_t aA;
 	ocrEventCreate(&aA, OCR_EVENT_IDEM_T, true);
-	createEdt(scaleEdtTemplate, aA, A, A_rows, A_columns, alpha);
+	ocrGuid_t edtI = createEdt(scaleEdtTemplate, aA, A_rows, A_columns);
 
 	ocrGuid_t aAp;
 	ocrEventCreate(&aAp, OCR_EVENT_IDEM_T, true);
-	createEdt(productEdtTemplate, aAp, aA, A_rows,
-		A_columns, p_old, X_old_rows, X_old_columns);
+	ocrGuid_t edtJ = createEdt(productEdtTemplate, aAp, A_rows,
+		A_columns, X_old_rows, X_old_columns);
 
 	ocrGuid_t r_new;
 	ocrEventCreate(&r_new, OCR_EVENT_IDEM_T, true);
-	createEdt(subtractEdtTemplate, r_new, r_old, X_old_rows, X_old_columns, aAp);
+	ocrGuid_t edtK = createEdt(subtractEdtTemplate, r_new, X_old_rows, X_old_columns);
 
 	//ocrDbDestroy(aA);
 	//ocrDbDestroy(aAp);
-
-	ocrGuid_t stepBEdtTemplate;
-	ocrEdtTemplateCreate(&stepBEdtTemplate, CgEdt_StepB, 5, 7);
-
-	u64 nparamv[5];
-	nparamv[0] = (u64) A_rows;
-	nparamv[1] = (u64) A_columns;
-	nparamv[2] = (u64) X_old_rows;
-	nparamv[3] = (u64) X_old_columns;
-	nparamv[4] = (u64) k;
-
-	ocrGuid_t stepBEdt;
-	ocrEdtCreate(&stepBEdt, stepBEdtTemplate, EDT_PARAM_DEF, nparamv, EDT_PARAM_DEF,
-		NULL, EDT_PROP_NONE, NULL_GUID, &e);
-	ocrAddDependence(A, stepBEdt, 0, DB_MODE_RO);
-	ocrAddDependence(B, stepBEdt, 1, DB_MODE_RO);
-	ocrAddDependence(x_new, stepBEdt, 2, DB_MODE_RO);
-	ocrAddDependence(p_old, stepBEdt, 3, DB_MODE_RO);
-	ocrAddDependence(r_new, stepBEdt, 4, DB_MODE_RO);
-	ocrAddDependence(rTr, stepBEdt, 5, DB_MODE_RO);
-	ocrAddDependence(e, stepBEdt, 6, DB_MODE_RO);
-
-	return e;
-}
-
-//Parameters: A_rows, A_columns, X_new_rows, X_new_columns, k
-//Dependencies: A_db, B_db, x_new_db, p_old_db, r_new_db, rTr_db, output_event
-//Output: Guid event satisfied with result of conjugate gradient
-
-extern "C" ocrGuid_t CgEdt_StepB(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[])
-{
-	int A_rows = (int) paramv[0];
-	int A_columns = (int) paramv[1];
-	int X_new_rows = (int) paramv[2];
-	int X_new_columns = (int) paramv[3];
-	int k = (int) paramv[4];
-
-	ocrGuid_t A = depv[0].guid;
-	ocrGuid_t B = depv[1].guid;
-	ocrGuid_t x_new = depv[2].guid;
-	ocrGuid_t p_old = depv[3].guid;
-	ocrGuid_t r_new = depv[4].guid;
-	ocrGuid_t rTr = depv[5].guid;
-	ocrGuid_t e = depv[6].guid;
-
-	ocrGuid_t scaleEdtTemplate;
-	ocrEdtTemplateCreate(&scaleEdtTemplate, scaleEdt, 2, 3);
-
-	ocrGuid_t productEdtTemplate;
-	ocrEdtTemplateCreate(&productEdtTemplate, productEdt, 4, 3);
-
-	ocrGuid_t transposeEdtTemplate;
-	ocrEdtTemplateCreate(&transposeEdtTemplate, transposeEdt, 2, 2);
-
-	ocrGuid_t addEdtTemplate;
-	ocrEdtTemplateCreate(&addEdtTemplate, addEdt, 2, 3);
-
-	ocrGuid_t subtractEdtTemplate;
-	ocrEdtTemplateCreate(&subtractEdtTemplate, subtractEdt, 2, 3);
-
-	ocrGuid_t divideEdtTemplate;
-	ocrEdtTemplateCreate(&divideEdtTemplate, divideEdt, 0, 3);
-
-	double val = 0;
-	double *p = (double*) depv[4].ptr;
-	for (int i = 0; i < X_new_columns; i++)
-		val += abs(p[i]);
-	if (val <= RESIDUAL_LIMIT) {
-		//ocrDbDestroy(r_old)
-		//ocrDbDestroy(r_new)
-		//if (k != 0) {
-		//      ocrDbDestroy(x_old)
-		//      ocrDbDestroy(p_old)
-		//}
-		//ocrDbDestroy(rTr)
-		ocrEventSatisfy(e, x_new);
-		return e;
-	}
-
+	
 	ocrGuid_t rT_new;
 	ocrEventCreate(&rT_new, OCR_EVENT_IDEM_T, true);
-	createEdt(transposeEdtTemplate, rT_new, r_new, X_new_rows, X_new_columns);
+	ocrGuid_t edtL = createEdt(transposeEdtTemplate, rT_new, X_old_rows, X_old_columns);
 
 	ocrGuid_t rT_newr;
 	ocrEventCreate(&rT_newr, OCR_EVENT_IDEM_T, true);
-	createEdt(productEdtTemplate, rT_newr, rT_new, X_new_columns,
-		X_new_rows, r_new, X_new_rows, X_new_columns);
+	ocrGuid_t edtM = createEdt(productEdtTemplate, rT_newr, X_old_columns,
+		X_old_rows, X_old_rows, X_old_columns);
 
 	ocrGuid_t beta;
 	ocrEventCreate(&beta, OCR_EVENT_IDEM_T, true);
-	createEdt(divideEdtTemplate, beta, rT_newr, 1, 1, rTr);
+	ocrGuid_t edtN = createEdt(divideEdtTemplate, beta, rT_newr, 1, 1, rTr);
 
 	//ocrDbDestroy(rT_new);
 	//ocrDbDestroy(rT_newr);
 	//ocrDbDestroy(rTr);
+	
 	ocrGuid_t bp;
 	ocrEventCreate(&bp, OCR_EVENT_IDEM_T, true);
-	createEdt(scaleEdtTemplate, bp, p_old, X_new_rows, X_new_columns, beta);
+	ocrGuid_t edtO = createEdt(scaleEdtTemplate, bp, X_old_rows, X_old_columns);
 
 	ocrGuid_t p_new;
 	ocrEventCreate(&p_new, OCR_EVENT_IDEM_T, true);
-	createEdt(addEdtTemplate, p_new, r_new, X_new_rows, X_new_columns, bp);
+	ocrGuid_t edtP = createEdt(addEdtTemplate, p_new, X_old_rows, X_old_columns);
 
 	//ocrDbDestroy(bp);
 	k++;
@@ -375,29 +295,75 @@ extern "C" ocrGuid_t CgEdt_StepB(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t 
 	//x_old = x_new;
 	//p_old = p_new;
 
-	ocrGuid_t stepAEdtTemplate;
-	ocrEdtTemplateCreate(&stepAEdtTemplate, CgEdt_StepA, 5, 6);
+	ocrGuid_t CgEdtTemplate;
+	ocrEdtTemplateCreate(&CgEdtTemplate, CgEdt, 5, 6);
 
 	u64 nparamv[5];
 	nparamv[0] = (u64) A_rows;
 	nparamv[1] = (u64) A_columns;
-	nparamv[2] = (u64) X_new_rows;
-	nparamv[3] = (u64) X_new_columns;
+	nparamv[2] = (u64) X_old_rows;
+	nparamv[3] = (u64) X_old_columns;
 	nparamv[4] = (u64) k;
 
-	ocrGuid_t stepAEdt;
-	ocrEdtCreate(&stepAEdt, stepAEdtTemplate, EDT_PARAM_DEF, nparamv, EDT_PARAM_DEF,
-		NULL, EDT_PROP_NONE, NULL_GUID, &e);
-	ocrAddDependence(A, stepAEdt, 0, DB_MODE_RO);
-	ocrAddDependence(B, stepAEdt, 1, DB_MODE_RO);
-	ocrAddDependence(x_new, stepAEdt, 2, DB_MODE_RO);
-	ocrAddDependence(p_new, stepAEdt, 3, DB_MODE_RO);
-	ocrAddDependence(r_new, stepAEdt, 4, DB_MODE_RO);
-	ocrAddDependence(e, stepAEdt, 5, DB_MODE_RO);
+	ocrGuid_t myEdt;
+	//Satisfy with A, B, x_new, p_new, r_new
+	ocrEdtCreate(&myEdt, CgEdtTemplate, EDT_PARAM_DEF, nparamv, EDT_PARAM_DEF,
+		NULL, EDT_PROP_NONE, NULL_GUID, NULL);
+	
+	ocrAddDependence(r_old, edtA, 1, DB_MODE_RO);
 
-	return e;
+	ocrAddDependence(rT, edtB, 1, DB_MODE_RO);
+	ocrAddDependence(r_old, edtB, 2, DB_MODE_RO);
+
+	ocrAddDependence(p_old, edtC, 1, DB_MODE_RO);
+
+	ocrAddDependence(pT, edtD, 1, DB_MODE_RO);
+	ocrAddDependence(A, edtD, 2, DB_MODE_RO);
+
+	ocrAddDependence(pTA, edtE, 1, DB_MODE_RO);
+	ocrAddDependence(p_old, edtE, 2, DB_MODE_RO);
+
+	ocrAddDependence(rTr, edtF, 1, DB_MODE_RO);
+	ocrAddDependence(pTAp, edtF, 2, DB_MODE_RO);
+
+	ocrAddDependence(p_old, edtG, 1, DB_MODE_RO);
+	ocrAddDependence(alpha, edtG, 2, DB_MODE_RO);
+
+	ocrAddDependence(x_old, edtH, 1, DB_MODE_RO);
+	ocrAddDependence(ap, edtH, 2, DB_MODE_RO);
+
+	ocrAddDependence(A, edtI, 1, DB_MODE_RO);
+	ocrAddDependence(alpha, edtI, 2, DB_MODE_RO);
+
+	ocrAddDependence(aA, edtJ, 1, DB_MODE_RO);
+	ocrAddDependence(p_old, edtJ, 2, DB_MODE_RO);
+
+	ocrAddDependence(r_old, edtK, 1, DB_MODE_RO);
+	ocrAddDependence(aAp, edtK, 2, DB_MODE_RO);
+	
+	ocrAddDependence(r_new, edtL, 1, DB_MODE_RO);
+
+	ocrAddDependence(rT_new, edtM, 1, DB_MODE_RO);
+	ocrAddDependence(r_new, edtM, 2, DB_MODE_RO);
+
+	ocrAddDependence(rT_newr, edtN, 1, DB_MODE_RO);
+	ocrAddDependence(rTr, edtN, 2, DB_MODE_RO);
+
+	ocrAddDependence(p_old, edtO, 1, DB_MODE_RO);
+	ocrAddDependence(beta, edtO, 2, DB_MODE_RO);
+
+	ocrAddDependence(r_new, edtP, 1, DB_MODE_RO);
+	ocrAddDependence(bp, edtP, 2, DB_MODE_RO);
+	
+	ocrAddDependence(result, myEdt, 0, DB_MODE_ITW);
+	ocrAddDependence(A, myEdt, 1, DB_MODE_RO);
+	ocrAddDependence(B, myEdt, 2, DB_MODE_RO);
+	ocrAddDependence(x_new, myEdt, 3, DB_MODE_RO);
+	ocrAddDependence(p_new, myEdt, 4, DB_MODE_RO);
+	ocrAddDependence(r_new, myEdt, 5, DB_MODE_RO);
+
+	return NULL_GUID;
 }
-
 
 //do error checks later
 
@@ -413,7 +379,7 @@ Matrix* conjugateGradient(Matrix *A, Matrix *x, Matrix *B)
 	Matrix *p_old = &foo;
 
 	int k = 0;
-	while (1) {
+	while (k < K_ITERATIONS) {
 		Matrix *rT = matrixTranspose(r_old);
 		Matrix *rTr = matrixProduct(rT, r_old);
 		Matrix *pT = matrixTranspose(p_old);
@@ -434,20 +400,6 @@ Matrix* conjugateGradient(Matrix *A, Matrix *x, Matrix *B)
 		Matrix *r_new = matrixSubtract(r_old, aAp);
 		delete aA;
 		delete aAp;
-
-		double val = 0;
-		for (int i = 0; i < r_new->getColumns(); i++)
-			val += abs(r_new->getValue(0, i));
-		if (val <= RESIDUAL_LIMIT) {
-			delete r_old;
-			delete r_new;
-			if (k != 0) {
-				delete x_old;
-				delete p_old;
-			}
-			delete rTr;
-			break;
-		}
 
 		Matrix *rT_new = matrixTranspose(r_new);
 		Matrix *rT_newr = matrixProduct(rT_new, r_new);
@@ -476,23 +428,23 @@ Matrix* conjugateGradient(Matrix *A, Matrix *x, Matrix *B)
 
 //do error checks later
 
-ocrGuid_t conjugateGradient_OCR(Matrix *A, Matrix *x, Matrix *B)
+void conjugateGradient_OCR(Matrix *A, Matrix *x, Matrix *B, ocrGuid_t result)
 {
 	ocrGuid_t productEdtTemplate;
-	ocrEdtTemplateCreate(&productEdtTemplate, productEdt, 4, 2);
+	ocrEdtTemplateCreate(&productEdtTemplate, productEdt, 4, 3);
 
 	ocrGuid_t subtractEdtTemplate;
-	ocrEdtTemplateCreate(&subtractEdtTemplate, subtractEdt, 2, 2);
+	ocrEdtTemplateCreate(&subtractEdtTemplate, subtractEdt, 2, 3);
 
 	ocrGuid_t Ax;
 	ocrEventCreate(&Ax, OCR_EVENT_IDEM_T, true);
-	createEdt(productEdtTemplate, Ax, A->getDataBlock(), A->getRows(),
-		A->getColumns(), x->getDataBlock(), x->getRows(), x->getColumns());
+	ocrGuid_t edtA = createEdt(productEdtTemplate, Ax, A->getRows(), A->getColumns(), 
+		x->getRows(), x->getColumns());
 
 	ocrGuid_t r_old;
 	ocrEventCreate(&r_old, OCR_EVENT_IDEM_T, true);
-	createEdt(subtractEdtTemplate, r_old, B->getDataBlock(), B->getRows(),
-		B->getColumns(), Ax, x->getRows(), x->getColumns());
+	ocrGuid_t edtB = createEdt(subtractEdtTemplate, r_old, B->getRows(), B->getColumns(), 
+		x->getRows(), x->getColumns());
 
 	//ocrDbDestroy(Ax);
 
@@ -500,8 +452,8 @@ ocrGuid_t conjugateGradient_OCR(Matrix *A, Matrix *x, Matrix *B)
 
 	//ocrGuid_t p_old = r_old;
 
-	ocrGuid_t stepAEdtTemplate;
-	ocrEdtTemplateCreate(&stepAEdtTemplate, CgEdt_StepA, 5, 5);
+	ocrGuid_t CgEdtTemplate;
+	ocrEdtTemplateCreate(&CgEdtTemplate, CgEdt, 5, 6);
 
 	u64 nparamv[5];
 	nparamv[0] = (u64) A->getRows();
@@ -510,19 +462,23 @@ ocrGuid_t conjugateGradient_OCR(Matrix *A, Matrix *x, Matrix *B)
 	nparamv[3] = (u64) x->getColumns();
 	nparamv[4] = (u64) k;
 
-	ocrGuid_t e;
-	ocrEventCreate(&e, OCR_EVENT_IDEM_T, true);
-	ocrGuid_t stepAEdt;
-	ocrEdtCreate(&stepAEdt, stepAEdtTemplate, EDT_PARAM_DEF, nparamv, EDT_PARAM_DEF,
-		NULL, EDT_PROP_NONE, NULL_GUID, &e);
-	ocrAddDependence(A->getDataBlock(), stepAEdt, 0, DB_MODE_RO);
-	ocrAddDependence(B->getDataBlock(), stepAEdt, 1, DB_MODE_RO);
-	ocrAddDependence(x->getDataBlock(), stepAEdt, 2, DB_MODE_RO);
-	ocrAddDependence(r_old, stepAEdt, 3, DB_MODE_RO); //p_old
-	ocrAddDependence(r_old, stepAEdt, 4, DB_MODE_RO);
-	ocrAddDependence(e, stepAEdt, 5, DB_MODE_RO);
+	ocrGuid_t myEdt;
+	//Satisfy with A, B, x, p_old, r_old
+	ocrEdtCreate(&myEdt, CgEdtTemplate, EDT_PARAM_DEF, nparamv, EDT_PARAM_DEF,
+		NULL, EDT_PROP_NONE, NULL_GUID, NULL);
+	
+	ocrAddDependence(A->getDataBlock(), edtA, 1, DB_MODE_RO);
+	ocrAddDependence(x->getDataBlock(), edtA, 2, DB_MODE_RO);
 
-	return e;
+	ocrAddDependence(B->getDataBlock(), edtB, 1, DB_MODE_RO);
+	ocrAddDependence(Ax, edtB, 1, DB_MODE_RO);
+	
+	ocrAddDependence(result, myEdt, 0, DB_MODE_ITW);
+	ocrAddDependence(A->getDataBlock(), myEdt, 1, DB_MODE_RO);
+	ocrAddDependence(B->getDataBlock(), myEdt, 2, DB_MODE_RO);
+	ocrAddDependence(x->getDataBlock(), myEdt, 3, DB_MODE_RO);
+	ocrAddDependence(r_old, myEdt, 4, DB_MODE_RO); //p_old
+	ocrAddDependence(r_old, myEdt, 5, DB_MODE_RO);
 }
 
 
@@ -542,29 +498,28 @@ extern "C" ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv
 	B.setValue(0, 0, 1.0f);
 	B.setValue(1, 0, 2.0f);
 
+	cout << "Testing Conjugate Gradient..." << endl;
 	Matrix *fishy = conjugateGradient(&A, &x, &B);
 	cout << "Solution:" << endl;
 	cout << fishy->getValue(0, 0) << endl;
 	cout << fishy->getValue(1, 0) << endl << endl;
 
-	ocrGuid_t result = conjugateGradient_OCR(&A, &x, &B);
+	cout << "Testing Conjugate Gradient OCR..." << endl;
+	ocrGuid_t result;
+	ocrEventCreate(&result, OCR_EVENT_IDEM_T, true);
+	conjugateGradient_OCR(&A, &x, &B, result);
 	
-	//return x_new;
-//	u64 nparamv[1];
-//	nparamv[0] = (u64)x.getRows();
-//
-//	ocrGuid_t printEdtTemplate;
-//	ocrEdtTemplateCreate(&printEdtTemplate, printEdt, 1, 2);
-//
-//	ocrGuid_t printEdt;
-//	ocrGuid_t e;
-//	ocrEdtCreate(&printEdt, printEdtTemplate, EDT_PARAM_DEF, nparamv, EDT_PARAM_DEF,
-//		NULL, EDT_PROP_NONE, NULL_GUID, NULL);
-//	ocrAddDependence(result, printEdt, 0, DB_MODE_RO);
-//	ocrAddDependence(e, printEdt, 1, DB_MODE_RO);
+	u64 nparamv[1];
+	nparamv[0] = (u64)x.getRows();
 
-	ocrShutdown();
-	cout << "done" << endl;
+	ocrGuid_t printEdtTemplate;
+	ocrEdtTemplateCreate(&printEdtTemplate, printEdt, 1, 1);
+
+	ocrGuid_t printEdt;
+	ocrEdtCreate(&printEdt, printEdtTemplate, EDT_PARAM_DEF, nparamv, EDT_PARAM_DEF,
+		NULL, EDT_PROP_FINISH, NULL_GUID, NULL);
+	ocrAddDependence(result, printEdt, 0, DB_MODE_RO);
+
 	return NULL_GUID;
 }
 
