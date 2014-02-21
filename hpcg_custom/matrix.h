@@ -10,6 +10,10 @@
 
 //#include <iostream>
 
+extern "C" {
+	#include <pthread.h>
+}
+
 #ifndef __OCR__
 #define __OCR__
 #endif
@@ -37,18 +41,18 @@ private:
 };
 
 Matrix* matrixScale(Matrix *A, double scalar);
-double* matrixScale(ocrGuid_t *dataBlock, double *A_mat, int A_rows,
+ocrGuid_t matrixScale(ocrGuid_t *dataBlock, double *A_mat, int A_rows,
 	int A_columns, double *scalar);
 Matrix* matrixProduct(Matrix *A, Matrix *B);
-double* matrixProduct(ocrGuid_t *dataBlock, double *A_mat, int A_rows,
+ocrGuid_t matrixProduct(ocrGuid_t *dataBlock, double *A_mat, int A_rows,
 	int A_columns, double *B_mat, int B_rows, int B_columns);
 Matrix* matrixTranspose(Matrix *A);
-double* matrixTranspose(ocrGuid_t *dataBlock, double *A_mat, int A_rows, int A_columns);
+ocrGuid_t matrixTranspose(ocrGuid_t *dataBlock, double *A_mat, int A_rows, int A_columns);
 Matrix* matrixAdd(Matrix *A, Matrix *B);
-double* matrixAdd(ocrGuid_t *dataBlock, double *A_mat, int A_rows,
+ocrGuid_t matrixAdd(ocrGuid_t *dataBlock, double *A_mat, int A_rows,
 	int A_columns, double *B_mat);
 Matrix* matrixSubtract(Matrix *A, Matrix *B);
-double* matrixSubtract(ocrGuid_t *dataBlock, double *A_mat, int A_rows,
+ocrGuid_t matrixSubtract(ocrGuid_t *dataBlock, double *A_mat, int A_rows,
 	int A_columns, double *B_mat);
 
 #endif	/* MATRIX_H */
