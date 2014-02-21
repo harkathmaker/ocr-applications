@@ -53,7 +53,7 @@ FFLAGS=
 ASFLAGS=
 
 # Link Libraries and Options
-LDLIBSOPTIONS=-L/home/commlaptop/ocr/ocr-install/lib -locr
+LDLIBSOPTIONS=-L/home/commlaptop/ocr/install/x86-pthread-x86/lib -locr -pthread
 
 # Build Targets
 .build-conf: ${BUILD_SUBPROJECTS}
@@ -61,17 +61,17 @@ LDLIBSOPTIONS=-L/home/commlaptop/ocr/ocr-install/lib -locr
 
 ${CND_DISTDIR}/${CND_CONF}/${CND_PLATFORM}/hpcg_custom: ${OBJECTFILES}
 	${MKDIR} -p ${CND_DISTDIR}/${CND_CONF}/${CND_PLATFORM}
-	${LINK.cc} -o ${CND_DISTDIR}/${CND_CONF}/${CND_PLATFORM}/hpcg_custom ${OBJECTFILES} ${LDLIBSOPTIONS}
+	${LINK.cc} -o ${CND_DISTDIR}/${CND_CONF}/${CND_PLATFORM}/hpcg_custom ${OBJECTFILES} ${LDLIBSOPTIONS} -static
 
 ${OBJECTDIR}/main.o: main.cpp 
 	${MKDIR} -p ${OBJECTDIR}
 	${RM} "$@.d"
-	$(COMPILE.cc) -g -I/home/commlaptop/ocr/ocr-install/include -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/main.o main.cpp
+	$(COMPILE.cc) -g -I/home/commlaptop/ocr/install/x86-pthread-x86/include -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/main.o main.cpp
 
 ${OBJECTDIR}/matrix.o: matrix.cpp 
 	${MKDIR} -p ${OBJECTDIR}
 	${RM} "$@.d"
-	$(COMPILE.cc) -g -I/home/commlaptop/ocr/ocr-install/include -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/matrix.o matrix.cpp
+	$(COMPILE.cc) -g -I/home/commlaptop/ocr/install/x86-pthread-x86/include -MMD -MP -MF "$@.d" -o ${OBJECTDIR}/matrix.o matrix.cpp
 
 # Subprojects
 .build-subprojects:

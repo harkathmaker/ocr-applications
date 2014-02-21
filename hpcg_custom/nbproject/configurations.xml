@@ -42,16 +42,18 @@
       <compileType>
         <ccTool>
           <incDir>
-            <pElem>/home/commlaptop/ocr/ocr-install/include</pElem>
+            <pElem>/home/commlaptop/ocr/install/x86-pthread-x86/include</pElem>
           </incDir>
         </ccTool>
         <linkerTool>
           <linkerAddLib>
-            <pElem>/home/commlaptop/ocr/ocr-install/lib</pElem>
+            <pElem>/home/commlaptop/ocr/install/x86-pthread-x86/lib</pElem>
           </linkerAddLib>
           <linkerLibItems>
             <linkerLibLibItem>ocr</linkerLibLibItem>
+            <linkerOptionItem>-pthread</linkerOptionItem>
           </linkerLibItems>
+          <commandLine>-static</commandLine>
         </linkerTool>
       </compileType>
       <item path="main.cpp" ex="false" tool="1" flavor2="0">
