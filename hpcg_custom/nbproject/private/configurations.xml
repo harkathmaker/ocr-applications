@@ -33,7 +33,7 @@
         <remove-instrumentation>0</remove-instrumentation>
         <environment>
           <variable name="OCR_CONFIG"
-                    value="/home/commlaptop/ocr/ocr-install/config/default.cfg"/>
+                    value="/home/commlaptop/ocr/install/x86-pthread-x86/config/default.cfg"/>
         </environment>
       </runprofile>
     </conf>

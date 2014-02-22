@@ -82,7 +82,7 @@ Matrix* matrixScale(Matrix *A, double scalar)
 	return r;
 }
 
-double* matrixScale(ocrGuid_t *dataBlock, double *A_mat, int A_rows, int A_columns, double *scalar)
+ocrGuid_t matrixScale(ocrGuid_t *dataBlock, double *A_mat, int A_rows, int A_columns, double *scalar)
 {
 	double* r;
 	DBCREATE(dataBlock, (void**) &r, A_columns * A_rows * sizeof (double),
@@ -93,7 +93,7 @@ double* matrixScale(ocrGuid_t *dataBlock, double *A_mat, int A_rows, int A_colum
 			r[row * A_columns + column] = v * scalar[0];
 		}
 	}
-	return r;
+	return *dataBlock;
 }
 
 Matrix* matrixProduct(Matrix *A, Matrix *B)
@@ -114,10 +114,10 @@ Matrix* matrixProduct(Matrix *A, Matrix *B)
 	return r;
 }
 
-double* matrixProduct(ocrGuid_t *dataBlock, double *A_mat, int A_rows,
+ocrGuid_t matrixProduct(ocrGuid_t *dataBlock, double *A_mat, int A_rows,
 	int A_columns, double *B_mat, int B_rows, int B_columns)
 {
-	if (A_columns != B_rows) return NULL;
+	if (A_columns != B_rows) return NULL_GUID;
 
 	double* r;
 	DBCREATE(dataBlock, (void**) &r, A_rows * B_columns * sizeof (double),
@@ -131,7 +131,7 @@ double* matrixProduct(ocrGuid_t *dataBlock, double *A_mat, int A_rows,
 			}
 		}
 	}
-	return r;
+	return *dataBlock;
 }
 
 Matrix* matrixTranspose(Matrix *A)
@@ -146,7 +146,7 @@ Matrix* matrixTranspose(Matrix *A)
 	return r;
 }
 
-double* matrixTranspose(ocrGuid_t *dataBlock, double *A_mat, int A_rows, int A_columns)
+ocrGuid_t matrixTranspose(ocrGuid_t *dataBlock, double *A_mat, int A_rows, int A_columns)
 {
 	double* r;
 	DBCREATE(dataBlock, (void**) &r, A_columns * A_rows * sizeof (double),
@@ -157,7 +157,7 @@ double* matrixTranspose(ocrGuid_t *dataBlock, double *A_mat, int A_rows, int A_c
 			r[column * A_columns + row] = v;
 		}
 	}
-	return r;
+	return *dataBlock;
 }
 
 Matrix* matrixAdd(Matrix *A, Matrix *B)
@@ -175,7 +175,7 @@ Matrix* matrixAdd(Matrix *A, Matrix *B)
 	return r;
 }
 
-double* matrixAdd(ocrGuid_t *dataBlock, double *A_mat, int A_rows,
+ocrGuid_t matrixAdd(ocrGuid_t *dataBlock, double *A_mat, int A_rows,
 	int A_columns, double *B_mat)
 {
 	double* r;
@@ -188,7 +188,7 @@ double* matrixAdd(ocrGuid_t *dataBlock, double *A_mat, int A_rows,
 			r[row * A_columns + column] = valA + valB;
 		}
 	}
-	return r;
+	return *dataBlock;
 }
 
 Matrix* matrixSubtract(Matrix *A, Matrix *B)
@@ -206,7 +206,7 @@ Matrix* matrixSubtract(Matrix *A, Matrix *B)
 	return r;
 }
 
-double* matrixSubtract(ocrGuid_t *dataBlock, double *A_mat, int A_rows,
+ocrGuid_t matrixSubtract(ocrGuid_t *dataBlock, double *A_mat, int A_rows, 
 	int A_columns, double *B_mat)
 {
 	double* r;
@@ -219,5 +219,5 @@ double* matrixSubtract(ocrGuid_t *dataBlock, double *A_mat, int A_rows,
 			r[row * A_columns + column] = valA - valB;
 		}
 	}
-	return r;
+	return *dataBlock;
 }
