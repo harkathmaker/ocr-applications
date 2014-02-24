@@ -66,7 +66,7 @@ ocrGuid_t copy(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
 	STREAM_TYPE ** data = depv[0].ptr;
 	u64 trial = paramv[0] + 3;
 
-	// time and executing copy
+	// time and execute copy
 	// c = a where a = data[0], c = data[2]
 	data[trial][0] = mysecond();
 	for (j = 0; j < STREAM_ARRAY_SIZE+OFFSET; j++)
@@ -90,11 +90,11 @@ ocrGuid_t scale(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
 	STREAM_TYPE ** data = depv[0].ptr;
 	u64 trial = paramv[0] + 3;
 
-	// time and executing scale
+	// time and execute scale
 	// b = scalar * c where b = data[0], c = data[1], scalar = 3.0
 	data[trial][1] = mysecond();
 	for (j = 0; j < STREAM_ARRAY_SIZE+OFFSET; j++)
-		data[0][j] = scalar * data[1][j];
+		data[1][j] = scalar * data[2][j];
 	data[trial][1] = mysecond() - data[trial][1];
 
 	// repackaging guid
@@ -104,7 +104,7 @@ ocrGuid_t scale(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
 	DBCREATE(&guidArrayGuid,(void **) &guidArray, sizeof(ocrGuid_t)*(NTIMES + 3), 0, NULL_GUID, NO_ALLOC);
 	for (j = 0; j < NTIMES + 3; j++)
 		guidArray[j] = guids[j];
-	//PRINTF("Finished SCALE\n");
+	//PRINTF("FINISHED SCALE\n");
 	return guidArrayGuid;
 }
 
@@ -113,7 +113,7 @@ ocrGuid_t add(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
 	STREAM_TYPE ** data = depv[0].ptr;
 	u64 trial = paramv[0] + 3;
 
-	// time and executing add
+	// time and execute add
 	// c = a + b where a = data[0], b = data[1], c = data[2]
 	data[trial][2] = mysecond();
 	for (j = 0; j < STREAM_ARRAY_SIZE+OFFSET; j++)
@@ -127,7 +127,7 @@ ocrGuid_t add(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
 	DBCREATE(&guidArrayGuid,(void **) &guidArray, sizeof(ocrGuid_t)*(NTIMES + 3), 0, NULL_GUID, NO_ALLOC);
 	for (j = 0; j < NTIMES + 3; j++)
 		guidArray[j] = guids[j];
-	//PRINTF("Finished ADD\n");
+	//PRINTF("FINISHED ADD\n");
 	return guidArrayGuid;
 }
 
@@ -137,7 +137,7 @@ ocrGuid_t triad(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
 	STREAM_TYPE ** data = depv[0].ptr;
 	u64 trial = paramv[0] + 3;
 
-	// time and executing triad
+	// time and execute triad
 	// a = b + scalar * c where a = data[0], b = data[1], c = data[2], scalar = 3.0
 	data[trial][3] = mysecond();
 	for (j = 0; j < STREAM_ARRAY_SIZE+OFFSET; j++)
@@ -151,7 +151,7 @@ ocrGuid_t triad(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
 	DBCREATE(&guidArrayGuid,(void **) &guidArray, sizeof(ocrGuid_t)*(NTIMES + 3), 0, NULL_GUID, NO_ALLOC);
 	for (j = 0; j < NTIMES + 3; j++)
 		guidArray[j] = guids[j];
-	//PRINTF("Finished TRIAD\n");
+	//PRINTF("FINISHED TRIAD\n");
 	return guidArrayGuid;
 }
 
@@ -217,8 +217,6 @@ ocrGuid_t pipelineEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]){
 		ocrAddDependence(doneEventGuid, paramv[1], 0, DB_MODE_RO);
 	return NULL_GUID;
 }
-
-
 
 ocrGuid_t iterEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
 	// Iteration Done Event
@@ -295,7 +293,6 @@ ocrGuid_t summaryAndCheckEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv
 	STREAM_TYPE aSumErr,bSumErr,cSumErr;
 	STREAM_TYPE aAvgErr,bAvgErr,cAvgErr;
 	double epsilon;
-
 
 	/* reproduce initialization */
 	aj = 1.0;
@@ -538,7 +535,6 @@ ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
 		// EDT_PROP_FINISH, NULL_GUID, NULL);
 	return NULL_GUID;
 }
-
 
 # define M	20
 int checktick() {
