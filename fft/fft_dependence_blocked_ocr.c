@@ -14,7 +14,7 @@
 #include <stdlib.h>
 #include <math.h>
 
-#define SERIAL_BLOCK_SIZE 1024
+#define SERIAL_BLOCK_SIZE (1024*16)
 #define PRINT_RESULTS 0
 
 void ditfft2(float *X_real, float *X_imag, float *x_in, int N, int step) {
@@ -90,13 +90,16 @@ ocrGuid_t fftStartEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
 		//PRINTF("Creating children of size %d\n",N/2);
 		ocrGuid_t edtGuid, edtGuid2, endEdtGuid, finishEventGuid, finishEventGuid2;
 
-		ocrEdtCreate(&edtGuid, startGuid, EDT_PARAM_DEF, childParamv, EDT_PARAM_DEF, &dataGuid, EDT_PROP_FINISH, NULL_GUID, &finishEventGuid);
-		ocrEdtCreate(&edtGuid2, startGuid, EDT_PARAM_DEF, childParamv2, EDT_PARAM_DEF, &dataGuid, EDT_PROP_FINISH, NULL_GUID, &finishEventGuid2);
+		ocrEdtCreate(&edtGuid, startGuid, EDT_PARAM_DEF, childParamv, EDT_PARAM_DEF, NULL_GUID, EDT_PROP_FINISH, NULL_GUID, &finishEventGuid);
+		ocrEdtCreate(&edtGuid2, startGuid, EDT_PARAM_DEF, childParamv2, EDT_PARAM_DEF, NULL_GUID, EDT_PROP_FINISH, NULL_GUID, &finishEventGuid2);
 		//PRINTF("finishEventGuid after create: %lu\n",finishEventGuid);
 
 		ocrGuid_t endDependencies[3] = { dataGuid, finishEventGuid, finishEventGuid2 };
 		// Do calculations after having divided and conquered
 		ocrEdtCreate(&endEdtGuid, endGuid, EDT_PARAM_DEF, paramv, EDT_PARAM_DEF, endDependencies, EDT_PROP_FINISH, NULL_GUID, NULL);
+
+		ocrAddDependence(dataGuid, edtGuid, 0, DB_MODE_ITW);
+		ocrAddDependence(dataGuid, edtGuid2, 0, DB_MODE_ITW);
 	}
 
 	//PRINTF("Task with size %d completed\n",N);
@@ -262,12 +265,12 @@ ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
 	
 	// Create an EDT out of the EDT template
 	ocrGuid_t edtGuid, printEdtGuid, edtEventGuid;
-	ocrEdtCreate(&edtGuid, startTempGuid, EDT_PARAM_DEF, edtParamv, EDT_PARAM_DEF, &dataGuid, EDT_PROP_FINISH, NULL_GUID, &edtEventGuid);
+	ocrEdtCreate(&edtGuid, startTempGuid, EDT_PARAM_DEF, edtParamv, EDT_PARAM_DEF, NULL_GUID, EDT_PROP_FINISH, NULL_GUID, &edtEventGuid);
 
 	ocrGuid_t finishDependencies[2] = { edtEventGuid, dataGuid };
 	ocrEdtCreate(&printEdtGuid, printTempGuid, EDT_PARAM_DEF, edtParamv, EDT_PARAM_DEF, finishDependencies, EDT_PROP_NONE, NULL_GUID, NULL);
 	
-	//ocrAddDependence(dataGuid, edtGuid, 0, DB_MODE_ITW);
+	ocrAddDependence(dataGuid, edtGuid, 0, DB_MODE_ITW);
 
 	return NULL_GUID;
 }

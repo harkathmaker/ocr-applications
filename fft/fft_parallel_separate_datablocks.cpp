@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <stack>
 
 #define SERIAL_BLOCK_SIZE 1024
 #define PRINT_RESULTS 0
@@ -48,7 +49,7 @@ void ditfft2(float *X_real, float *X_imag, float *x_in, int N, int step) {
 }
 
 #define __OCR__
-#include "ocr.h"
+#include <ocr.h>
 
 // Performs one entire iteration of FFT.
 // These are meant to be chained serially for timing and testing.
@@ -56,9 +57,9 @@ ocrGuid_t fftIterationEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[])
 	ocrGuid_t startTempGuid = paramv[0];
 	ocrGuid_t endTempGuid = paramv[1];
 	ocrGuid_t endSlaveTempGuid = paramv[2];
-	float *x_in = depv[0].ptr;
-	float *X_real = depv[1].ptr;
-	float *X_imag = depv[2].ptr;
+	float *x_in = (float*)depv[0].ptr;
+	float *X_real = (float*)depv[1].ptr;
+	float *X_imag = (float*)depv[2].ptr;
 	u64 N = paramv[3];
 	int i;
 
@@ -66,8 +67,11 @@ ocrGuid_t fftIterationEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[])
 	u64 edtParamv[7] = { startTempGuid, endTempGuid, endSlaveTempGuid, N, 1 /* step size */, 0 /* offset */, 0 /* x_in_offset */};
 	ocrGuid_t dependencies[3] = { paramv[4], paramv[5], paramv[6] };
 
+	//PRINTF("Creating iteration child\n");
 	ocrGuid_t edtGuid;
 	ocrEdtCreate(&edtGuid, startTempGuid, EDT_PARAM_DEF, edtParamv, EDT_PARAM_DEF, dependencies, EDT_PROP_FINISH, NULL_GUID, NULL_GUID);
+
+	return NULL_GUID;
 }
 
 // First part of the Cooley-Tukey algorithm. The work is recursively split in half until N = SERIAL_BLOCK_SIZE.
@@ -76,9 +80,9 @@ ocrGuid_t fftStartEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
 	ocrGuid_t startGuid = paramv[0];
 	ocrGuid_t endGuid = paramv[1];
 	ocrGuid_t endSlaveGuid = paramv[2];
-	float *data_in = depv[0].ptr;
-	float *data_real = depv[1].ptr;
-	float *data_imag = depv[2].ptr;
+	float *data_in = (float*)depv[0].ptr;
+	float *data_real = (float*)depv[1].ptr;
+	float *data_imag = (float*)depv[2].ptr;
 	ocrGuid_t dataInGuid = depv[0].guid;
 	ocrGuid_t dataRealGuid = depv[1].guid;
 	ocrGuid_t dataImagGuid = depv[2].guid;
@@ -106,16 +110,23 @@ ocrGuid_t fftStartEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
 		// This dependency list is the same as endDependencies below minus the finish event guids.
 		ocrGuid_t childDependencies[3] = { dataInGuid, dataRealGuid, dataImagGuid };
 
-		ocrEdtCreate(&edtGuid, startGuid, EDT_PARAM_DEF, childParamv, EDT_PARAM_DEF, childDependencies, EDT_PROP_FINISH, NULL_GUID, &finishEventGuid);
-		ocrEdtCreate(&edtGuid2, startGuid, EDT_PARAM_DEF, childParamv2, EDT_PARAM_DEF, childDependencies, EDT_PROP_FINISH, NULL_GUID, &finishEventGuid2);
+		ocrEdtCreate(&edtGuid, startGuid, EDT_PARAM_DEF, childParamv, EDT_PARAM_DEF, NULL_GUID, EDT_PROP_FINISH, NULL_GUID, &finishEventGuid);
+		ocrEdtCreate(&edtGuid2, startGuid, EDT_PARAM_DEF, childParamv2, EDT_PARAM_DEF, NULL_GUID, EDT_PROP_FINISH, NULL_GUID, &finishEventGuid2);
+		//PRINTF("Created child EDTs\n");
 		//PRINTF("finishEventGuid after create: %lu\n",finishEventGuid);
-		//ditfft2(X_real, X_imag, x_in, N/2, 2 * step);
-		//ditfft2(X_real+N/2, X_imag+N/2, x_in+step, N/2, 2 * step);
 
 		ocrGuid_t endDependencies[5] = { dataInGuid, dataRealGuid, dataImagGuid, finishEventGuid, finishEventGuid2 };
 
 		// Do calculations after having divided and conquered
-		ocrEdtCreate(&endEdtGuid, endGuid, EDT_PARAM_DEF, paramv, EDT_PARAM_DEF, childDependencies, EDT_PROP_FINISH, NULL_GUID, NULL);
+		ocrEdtCreate(&endEdtGuid, endGuid, EDT_PARAM_DEF, paramv, EDT_PARAM_DEF, endDependencies, EDT_PROP_FINISH, NULL_GUID, NULL);
+		//PRINTF("Created end EDT\n");
+
+		ocrAddDependence(dataInGuid, edtGuid, 0, DB_MODE_RO);
+		ocrAddDependence(dataRealGuid, edtGuid, 1, DB_MODE_ITW);
+		ocrAddDependence(dataImagGuid, edtGuid, 2, DB_MODE_ITW);
+		ocrAddDependence(dataInGuid, edtGuid2, 0, DB_MODE_RO);
+		ocrAddDependence(dataRealGuid, edtGuid2, 1, DB_MODE_ITW);
+		ocrAddDependence(dataImagGuid, edtGuid2, 2, DB_MODE_ITW);
 	}
 
 	//PRINTF("Task with size %d completed\n",N);
@@ -130,9 +141,9 @@ ocrGuid_t fftEndEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
 	ocrGuid_t startGuid = paramv[0];
 	ocrGuid_t endGuid = paramv[1];
 	ocrGuid_t endSlaveGuid = paramv[2];
-	float *data_in = depv[0].ptr;
-	float *data_real = depv[1].ptr;
-	float *data_imag = depv[2].ptr;
+	float *data_in = (float*)depv[0].ptr;
+	float *data_real = (float*)depv[1].ptr;
+	float *data_imag = (float*)depv[2].ptr;
 	ocrGuid_t dataGuids[3] = { depv[0].guid, depv[1].guid, depv[2].guid };
 	u64 N = paramv[3];
 	u64 step = paramv[4];
@@ -148,8 +159,8 @@ ocrGuid_t fftEndEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
 
 	if(N/2 > SERIAL_BLOCK_SIZE) {
 		// TODO: malloc will leak memory
-		slaveGuids = malloc(sizeof(ocrGuid_t) * (N/2)/SERIAL_BLOCK_SIZE);
-		slaveParamv = malloc(sizeof(u64) * 5 * (N/2)/SERIAL_BLOCK_SIZE);
+		slaveGuids = (ocrGuid_t*)malloc(sizeof(ocrGuid_t) * (N/2)/SERIAL_BLOCK_SIZE);
+		slaveParamv = (u64*)malloc(sizeof(u64) * 5 * (N/2)/SERIAL_BLOCK_SIZE);
 
 #if PRINT_RESULTS==1
 		PRINTF("Creating %d slaves for N=%d\n",(N/2)/SERIAL_BLOCK_SIZE,N);
@@ -165,8 +176,8 @@ ocrGuid_t fftEndEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
 			ocrEdtCreate(slaveGuids+i, endSlaveGuid, EDT_PARAM_DEF, slaveParamv+i*5, EDT_PARAM_DEF, dataGuids, EDT_PROP_NONE, NULL_GUID, NULL);
 		}
 	} else {
-		slaveGuids = malloc(sizeof(ocrGuid_t));
-		slaveParamv = malloc(sizeof(u64*) * 5);
+		slaveGuids = (ocrGuid_t*)malloc(sizeof(ocrGuid_t));
+		slaveParamv = (u64*)malloc(sizeof(u64*) * 5);
 		
 		slaveParamv[0] = N;
 		slaveParamv[1] = step;
@@ -180,9 +191,9 @@ ocrGuid_t fftEndEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
 }
 ocrGuid_t fftEndSlaveEdt(u32 paramc, u64 *paramv, u32 depc, ocrEdtDep_t depv[]) {
 	int i;
-	float *data_in = depv[0].ptr;
-	float *data_real = depv[1].ptr;
-	float *data_imag = depv[2].ptr;
+	float *data_in = (float*)depv[0].ptr;
+	float *data_real = (float*)depv[1].ptr;
+	float *data_imag = (float*)depv[2].ptr;
 	u64 N = paramv[0];
 	u64 step = paramv[1];
 	u64 offset = paramv[2];
@@ -228,9 +239,9 @@ ocrGuid_t finalPrintEdt(u32 paramc, u64 *paramv, u32 depc, ocrEdtDep_t depv[]) {
 	ocrGuid_t startGuid = paramv[0];
 	ocrGuid_t endGuid = paramv[1];
 	ocrGuid_t endSlaveGuid = paramv[2];
-	float *data_in = depv[1].ptr;
-	float *data_real = depv[2].ptr;
-	float *data_imag = depv[3].ptr;
+	float *data_in = (float*)depv[1].ptr;
+	float *data_real = (float*)depv[2].ptr;
+	float *data_imag = (float*)depv[3].ptr;
 	u64 N = paramv[3];
 	float *x_in = (float*)data_in;
 	float *X_real = (float*)(data_real);
@@ -245,7 +256,7 @@ ocrGuid_t finalPrintEdt(u32 paramc, u64 *paramv, u32 depc, ocrEdtDep_t depv[]) {
 	ocrShutdown();
 }
 
-ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
+extern "C" ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
 	u64 argc = getArgc(depv[0].ptr);
 	int i;
 	
@@ -295,21 +306,64 @@ ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
 	u64 edtParamv[7] = { startTempGuid, endTempGuid, endSlaveTempGuid, N, dataInGuid, dataRealGuid, dataImagGuid };
 	
 	// Create an EDT out of the EDT template
-	ocrGuid_t edtGuid, printEdtGuid, edtEventGuid;
+	ocrGuid_t edtGuid, edtPrevGuid, printEdtGuid, edtEventGuid, edtPrevEventGuid;
 	//ocrEdtCreate(&edtGuid, startTempGuid, EDT_PARAM_DEF, edtParamv, EDT_PARAM_DEF, NULL_GUID, EDT_PROP_FINISH, NULL_GUID, &edtEventGuid);
 
+	std::stack<ocrGuid_t> edtStack;
+	std::stack<ocrGuid_t> eventStack;
 	edtEventGuid = NULL_GUID;
-	for(i=0;i<iterations;i++) {
-		ocrGuid_t iterationDependencies[4] = { dataInGuid, dataRealGuid, dataImagGuid, edtEventGuid };
-		ocrEdtCreate(&edtGuid, iterationTempGuid, EDT_PARAM_DEF, edtParamv, (i==0 ? 4 : EDT_PARAM_DEF), iterationDependencies, EDT_PROP_FINISH, NULL_GUID, &edtEventGuid);
+	edtPrevEventGuid = NULL_GUID;
 
+	for(i=1;i<=iterations;i++) {	
+		ocrEdtCreate(&edtGuid, iterationTempGuid, EDT_PARAM_DEF, edtParamv, EDT_PARAM_DEF, NULL_GUID, EDT_PROP_FINISH, NULL_GUID, &edtEventGuid);
+		edtStack.push(edtGuid);
+		eventStack.push(edtEventGuid);
+	}
+	// Create finish EDT, with dependence on last EDT
+	ocrGuid_t finishDependencies[4] = { eventStack.top(), dataInGuid, dataRealGuid, dataImagGuid };
+	ocrEdtCreate(&printEdtGuid, printTempGuid, EDT_PARAM_DEF, edtParamv, EDT_PARAM_DEF, finishDependencies, EDT_PROP_NONE, NULL_GUID, NULL);
+	eventStack.pop();	
+
+	while(!edtStack.empty()) {
+		edtGuid = edtStack.top();
+		if(!eventStack.empty()) {
+			edtEventGuid = eventStack.top();
+		} else {
+			edtEventGuid = NULL_GUID;
+		}
 		ocrAddDependence(dataInGuid, edtGuid, 0, DB_MODE_RO);
 		ocrAddDependence(dataRealGuid, edtGuid, 1, DB_MODE_ITW);
 		ocrAddDependence(dataImagGuid, edtGuid, 2, DB_MODE_ITW);
+		ocrAddDependence(edtEventGuid, edtGuid, 3, DB_MODE_RO);
+		edtStack.pop();
+		eventStack.pop();
 	}
 
-	ocrGuid_t finishDependencies[4] = { edtEventGuid, dataInGuid, dataRealGuid, dataImagGuid };
-	ocrEdtCreate(&printEdtGuid, printTempGuid, EDT_PARAM_DEF, edtParamv, EDT_PARAM_DEF, finishDependencies, EDT_PROP_NONE, NULL_GUID, NULL);
+//	edtPrevEventGuid = NULL_GUID;
+//	for(i=1;i<=iterations;i++) {
+//		// Create EDT
+//		ocrEdtCreate(&edtGuid, iterationTempGuid, EDT_PARAM_DEF, edtParamv, EDT_PARAM_DEF, NULL_GUID, EDT_PROP_FINISH, NULL_GUID, &edtEventGuid);
+//		// Add dependence on previous EDT
+//		ocrAddDependence(edtPrevEventGuid, edtGuid, 3, DB_MODE_RO);
+//		// Allow prevEDT to run (add remaining dependences)
+//		if(i > 1) {
+//			ocrAddDependence(dataInGuid, edtPrevGuid, 0, DB_MODE_RO);
+//			ocrAddDependence(dataRealGuid, edtPrevGuid, 1, DB_MODE_ITW);
+//			ocrAddDependence(dataImagGuid, edtPrevGuid, 2, DB_MODE_ITW);
+//		}
+//		// set prevEDT=EDT
+//		edtPrevGuid = edtGuid;
+//		edtPrevEventGuid = edtEventGuid;
+//	}
+//	// Create finish EDT
+//	// Add dependence on last EDT
+//	ocrGuid_t finishDependencies[4] = { edtEventGuid, dataInGuid, dataRealGuid, dataImagGuid };
+//	ocrEdtCreate(&printEdtGuid, printTempGuid, EDT_PARAM_DEF, edtParamv, EDT_PARAM_DEF, finishDependencies, EDT_PROP_NONE, NULL_GUID, NULL);
+//	// fulfill last EDT's dependences
+//	ocrAddDependence(dataInGuid, edtPrevGuid, 0, DB_MODE_RO);
+//	ocrAddDependence(dataRealGuid, edtPrevGuid, 1, DB_MODE_ITW);
+//	ocrAddDependence(dataImagGuid, edtPrevGuid, 2, DB_MODE_ITW);
+
 
 	return NULL_GUID;
 }

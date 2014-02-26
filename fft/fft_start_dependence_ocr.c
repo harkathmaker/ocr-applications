@@ -33,12 +33,12 @@ ocrGuid_t fftStartEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
 	float *X_imag = (float*)(data+offset + 2*N*step);
 	//PRINTF("Step %d offset: %d N*step: %d\n", step, offset, N*step);
 	
-	//if(step == 1) {
+	if(step == 1) {
+		//sleep(1);
 	//for(i=0;i<N;i++) {
 	//	PRINTF("%d %f \n",i,x_in[i]);
 	//}
-	//}
-	//sleep(1);
+	}
 
 	if(N == 1) {
 		X_real[0] = x_in[x_in_offset];
@@ -109,7 +109,7 @@ ocrGuid_t fftEndEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
 }
 
 ocrGuid_t finalPrintEdt(u32 paramc, u64 *paramv, u32 depc, ocrEdtDep_t depv[]) {
-	PRINTF("Final print EDT\n");
+	//PRINTF("Final print EDT\n");
 	int i;
 	//for(i=0;i<paramc;i++) {
 	//	PRINTF("paramv[%d]: %lu\n",i,paramv[i]);
@@ -125,7 +125,7 @@ ocrGuid_t finalPrintEdt(u32 paramc, u64 *paramv, u32 depc, ocrEdtDep_t depv[]) {
 	float *X_real = (float*)(data+offset + N*step);
 	float *X_imag = (float*)(data+offset + 2*N*step);
 
-	//sleep(5);
+	//sleep(1);
 	//for(i=0;i<N;i++) {
 	//	PRINTF("%d [%f , %fi]\n",i,X_real[i],X_imag[i]);
 	//}

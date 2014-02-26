@@ -75,6 +75,7 @@ ocrGuid_t fftEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
 	//}
 	
 
+	PRINTF("Finished successfully\n");
 	ocrShutdown(); // This is the last EDT to execute
 	return NULL_GUID;
 }
@@ -102,6 +103,7 @@ ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
 	PRINTF("Running %d iterations\n",iterations);
 	PRINTF("sizeof(ocrGuid_t): %d\n",sizeof(ocrGuid_t));
 	PRINTF("paramc: %u\n",paramc);
+	PRINTF("N: %u\n",N);
 	for(i=0;i<paramc;i++) {
 		PRINTF("%ul\n",paramv[i]);
 	}

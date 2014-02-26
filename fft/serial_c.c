@@ -17,7 +17,8 @@ void ditfft2(float *X_real, float *X_imag, float *x_in, int N, int step) {
 		// DFT even side
 		ditfft2(X_real, X_imag, x_in, N/2, 2 * step);
 		ditfft2(X_real+N/2, X_imag+N/2, x_in+step, N/2, 2 * step);
-		for(int k=0;k<N/2;k++) {
+		int k;
+		for(k=0;k<N/2;k++) {
 			float t_real = X_real[k];
 			float t_imag = X_imag[k];
 			float twiddle_real = cos(-2 * M_PI * k / N);
@@ -47,8 +48,9 @@ int main(int argc, char *argv[]) {
 	float *x_in = (float*)malloc(sizeof(float) * N);
 	float *X_real = (float*)malloc(sizeof(float) * N);
 	float *X_imag = (float*)malloc(sizeof(float) * N);
-	
-	for(int i=0;i<N;i++) {
+	int i;
+
+	for(i=0;i<N;i++) {
 		x_in[i] = 0;
 	}
 	x_in[1] = 1;
@@ -57,7 +59,7 @@ int main(int argc, char *argv[]) {
 	
 	ditfft2(X_real, X_imag, x_in, N, 1);
 
-	for(int i=0;i<N;i++) {
+	for(i=0;i<N;i++) {
 		//printf("%d [%f + %fi]\n",i,X_real[i],X_imag[i]);
 	}
 }
