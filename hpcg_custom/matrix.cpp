@@ -82,10 +82,11 @@ Matrix* matrixScale(Matrix *A, double scalar)
 	return r;
 }
 
-ocrGuid_t matrixScale(ocrGuid_t *dataBlock, double *A_mat, int A_rows, int A_columns, double *scalar)
+ocrGuid_t matrixScale(double *A_mat, int A_rows, int A_columns, double *scalar)
 {
 	double* r;
-	DBCREATE(dataBlock, (void**) &r, A_columns * A_rows * sizeof (double),
+	ocrGuid_t dataBlock;
+	DBCREATE(&dataBlock, (void**) &r, A_columns * A_rows * sizeof (double),
 		DB_PROP_NONE, NULL_GUID, NO_ALLOC);
 	for (int row = 0; row < A_rows; row++) {
 		for (int column = 0; column < A_columns; column++) {
@@ -93,7 +94,7 @@ ocrGuid_t matrixScale(ocrGuid_t *dataBlock, double *A_mat, int A_rows, int A_col
 			r[row * A_columns + column] = v * scalar[0];
 		}
 	}
-	return *dataBlock;
+	return dataBlock;
 }
 
 Matrix* matrixProduct(Matrix *A, Matrix *B)
@@ -103,7 +104,7 @@ Matrix* matrixProduct(Matrix *A, Matrix *B)
 	Matrix* r = new Matrix(A->getRows(), B->getColumns());
 
 	for (int i = 0; i < A->getRows(); i++) {
-		for (int j = 0; j < A->getColumns(); j++) {
+		for (int j = 0; j < B->getColumns(); j++) {
 			double val = 0;
 			for (int x = 0; x < A->getColumns(); x++) {
 				val += A->getValue(i, x) * B->getValue(x, j);
@@ -114,24 +115,24 @@ Matrix* matrixProduct(Matrix *A, Matrix *B)
 	return r;
 }
 
-ocrGuid_t matrixProduct(ocrGuid_t *dataBlock, double *A_mat, int A_rows,
-	int A_columns, double *B_mat, int B_rows, int B_columns)
+ocrGuid_t matrixProduct(double *A_mat, int A_rows, int A_columns, double *B_mat, int B_rows, int B_columns)
 {
 	if (A_columns != B_rows) return NULL_GUID;
 
 	double* r;
-	DBCREATE(dataBlock, (void**) &r, A_rows * B_columns * sizeof (double),
+	ocrGuid_t dataBlock;
+	DBCREATE(&dataBlock, (void**) &r, A_rows * B_columns * sizeof (double),
 		DB_PROP_NONE, NULL_GUID, NO_ALLOC);
 
 	for (int i = 0; i < A_rows; i++) {
-		for (int j = 0; j < A_columns; j++) {
+		for (int j = 0; j < B_columns; j++) {
 			r[i * B_columns + j] = 0;
 			for (int x = 0; x < A_columns; x++) {
 				r[i * B_columns + j] += A_mat[i * A_columns + x] * B_mat[x * B_columns + j];
 			}
 		}
 	}
-	return *dataBlock;
+	return dataBlock;
 }
 
 Matrix* matrixTranspose(Matrix *A)
@@ -146,10 +147,11 @@ Matrix* matrixTranspose(Matrix *A)
 	return r;
 }
 
-ocrGuid_t matrixTranspose(ocrGuid_t *dataBlock, double *A_mat, int A_rows, int A_columns)
+ocrGuid_t matrixTranspose(double *A_mat, int A_rows, int A_columns)
 {
 	double* r;
-	DBCREATE(dataBlock, (void**) &r, A_columns * A_rows * sizeof (double),
+	ocrGuid_t dataBlock;
+	DBCREATE(&dataBlock, (void**) &r, A_columns * A_rows * sizeof (double),
 		DB_PROP_NONE, NULL_GUID, NO_ALLOC);
 	for (int row = 0; row < A_rows; row++) {
 		for (int column = 0; column < A_columns; column++) {
@@ -157,7 +159,7 @@ ocrGuid_t matrixTranspose(ocrGuid_t *dataBlock, double *A_mat, int A_rows, int A
 			r[column * A_columns + row] = v;
 		}
 	}
-	return *dataBlock;
+	return dataBlock;
 }
 
 Matrix* matrixAdd(Matrix *A, Matrix *B)
@@ -175,11 +177,11 @@ Matrix* matrixAdd(Matrix *A, Matrix *B)
 	return r;
 }
 
-ocrGuid_t matrixAdd(ocrGuid_t *dataBlock, double *A_mat, int A_rows,
-	int A_columns, double *B_mat)
+ocrGuid_t matrixAdd(double *A_mat, int A_rows, int A_columns, double *B_mat)
 {
 	double* r;
-	DBCREATE(dataBlock, (void**) &r, A_columns * A_rows * sizeof (double),
+	ocrGuid_t dataBlock;
+	DBCREATE(&dataBlock, (void**) &r, A_columns * A_rows * sizeof (double),
 		DB_PROP_NONE, NULL_GUID, NO_ALLOC);
 	for (int row = 0; row < A_rows; row++) {
 		for (int column = 0; column < A_columns; column++) {
@@ -188,7 +190,7 @@ ocrGuid_t matrixAdd(ocrGuid_t *dataBlock, double *A_mat, int A_rows,
 			r[row * A_columns + column] = valA + valB;
 		}
 	}
-	return *dataBlock;
+	return dataBlock;
 }
 
 Matrix* matrixSubtract(Matrix *A, Matrix *B)
@@ -206,11 +208,11 @@ Matrix* matrixSubtract(Matrix *A, Matrix *B)
 	return r;
 }
 
-ocrGuid_t matrixSubtract(ocrGuid_t *dataBlock, double *A_mat, int A_rows, 
-	int A_columns, double *B_mat)
+ocrGuid_t matrixSubtract(double *A_mat, int A_rows, int A_columns, double *B_mat)
 {
 	double* r;
-	DBCREATE(dataBlock, (void**) &r, A_columns * A_rows * sizeof (double),
+	ocrGuid_t dataBlock;
+	DBCREATE(&dataBlock, (void**) &r, A_columns * A_rows * sizeof (double),
 		DB_PROP_NONE, NULL_GUID, NO_ALLOC);
 	for (int row = 0; row < A_rows; row++) {
 		for (int column = 0; column < A_columns; column++) {
@@ -219,5 +221,5 @@ ocrGuid_t matrixSubtract(ocrGuid_t *dataBlock, double *A_mat, int A_rows,
 			r[row * A_columns + column] = valA - valB;
 		}
 	}
-	return *dataBlock;
+	return dataBlock;
 }

@@ -5,8 +5,6 @@
  * Created on February 7, 2014, 1:38 PM
  */
 
-//todo: create events for each matrix datablock. satisfy created datablocks in called Edts
-
 #include <iostream>
 #include <cmath>
 #include <time.h>
@@ -40,8 +38,7 @@ extern "C" ocrGuid_t scaleEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t dep
 #endif
 	double *a = (double*) depv[0].ptr;
 	double *b = (double*) depv[1].ptr;
-	ocrGuid_t dataBlock;
-	matrixScale(&dataBlock, a, (int) paramv[1], (int) paramv[2], b);
+	ocrGuid_t dataBlock = matrixScale(a, (int) paramv[1], (int) paramv[2], b);
 	ocrEventSatisfy((ocrGuid_t) paramv[0], dataBlock);
 #ifdef DEBUG_MESSAGES
 	cout << "scaleEdt(): result satisfied" << endl;
@@ -58,10 +55,9 @@ extern "C" ocrGuid_t productEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t d
 #ifdef DEBUG_MESSAGES
 	cout << "productEdt()" << endl;
 #endif
-	ocrGuid_t dataBlock;
-	matrixProduct(&dataBlock, (double*) depv[0].ptr, (int) paramv[1], (int) paramv[2],
+	ocrGuid_t dataBlock = matrixProduct((double*) depv[0].ptr, (int) paramv[1], (int) paramv[2],
 		(double*) depv[1].ptr, (int) paramv[3], (int) paramv[4]);
-	ocrEventSatisfy((ocrGuid_t) paramv[0], dataBlock);
+	ocrEventSatisfy((ocrGuid_t)paramv[0], dataBlock);
 #ifdef DEBUG_MESSAGES
 	cout << "productEdt(): result satisfied" << endl;
 #endif
@@ -77,8 +73,7 @@ extern "C" ocrGuid_t transposeEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t
 #ifdef DEBUG_MESSAGES
 	cout << "transposeEdt()" << endl;
 #endif
-	ocrGuid_t dataBlock;
-	matrixTranspose(&dataBlock, (double*) depv[0].ptr, (int) paramv[1], (int) paramv[2]);
+	ocrGuid_t dataBlock = matrixTranspose((double*) depv[0].ptr, (int) paramv[1], (int) paramv[2]);
 	ocrEventSatisfy((ocrGuid_t) paramv[0], dataBlock);
 #ifdef DEBUG_MESSAGES
 	cout << "transposeEdt(): result satisfied" << endl;
@@ -95,9 +90,7 @@ extern "C" ocrGuid_t addEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[
 #ifdef DEBUG_MESSAGES
 	cout << "addEdt()" << endl;
 #endif
-	ocrGuid_t dataBlock;
-	matrixAdd(&dataBlock, (double*) depv[0].ptr, (int) paramv[1], (int) paramv[2],
-		(double*) depv[1].ptr);
+	ocrGuid_t dataBlock = matrixAdd((double*) depv[0].ptr, (int) paramv[1], (int) paramv[2], (double*) depv[1].ptr);
 	ocrEventSatisfy((ocrGuid_t) paramv[0], dataBlock);
 #ifdef DEBUG_MESSAGES
 	cout << "addEdt(): result satisfied" << endl;
@@ -114,8 +107,7 @@ extern "C" ocrGuid_t subtractEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t 
 #ifdef DEBUG_MESSAGES
 	cout << "subtractEdt()" << endl;
 #endif
-	ocrGuid_t dataBlock;
-	matrixSubtract(&dataBlock, (double*) depv[0].ptr, (int) paramv[1], (int) paramv[2],
+	ocrGuid_t dataBlock = matrixSubtract((double*) depv[0].ptr, (int) paramv[1], (int) paramv[2],
 		(double*) depv[1].ptr);
 	ocrEventSatisfy((ocrGuid_t) paramv[0], dataBlock);
 #ifdef DEBUG_MESSAGES
@@ -168,7 +160,7 @@ extern "C" ocrGuid_t printEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t dep
 	return NULL_GUID;
 }
 
-ocrGuid_t createEdt(ocrGuid_t templateGuid, ocrGuid_t &outputGuid,
+ocrGuid_t createEdt(ocrGuid_t templateGuid, ocrGuid_t outputGuid,
 	int A_rows = 0, int A_columns = 0, int B_rows = 0, int B_columns = 0)
 {
 #ifdef DEBUG_MESSAGES
@@ -176,10 +168,10 @@ ocrGuid_t createEdt(ocrGuid_t templateGuid, ocrGuid_t &outputGuid,
 #endif
 	u64 nparamv[5];
 	nparamv[0] = outputGuid;
-	nparamv[1] = (u64) A_rows;
-	nparamv[2] = (u64) A_columns;
-	nparamv[3] = (u64) B_rows;
-	nparamv[4] = (u64) B_columns;
+	nparamv[1] = A_rows;
+	nparamv[2] = A_columns;
+	nparamv[3] = B_rows;
+	nparamv[4] = B_columns;
 #ifdef DEBUG_MESSAGES
 	cout << "createEdt(): initialized parameters" << endl;
 #endif
@@ -395,12 +387,12 @@ extern "C" ocrGuid_t CgEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]
 
 	int z = k + 1;
 	u64 nparamv[6];
-	nparamv[0] = (u64) result;
-	nparamv[1] = (u64) A_rows;
-	nparamv[2] = (u64) A_columns;
-	nparamv[3] = (u64) X_old_rows;
-	nparamv[4] = (u64) X_old_columns;
-	nparamv[5] = (u64) z;
+	nparamv[0] = result;
+	nparamv[1] = A_rows;
+	nparamv[2] = A_columns;
+	nparamv[3] = X_old_rows;
+	nparamv[4] = X_old_columns;
+	nparamv[5] = z;
 #ifdef DEBUG_MESSAGES
 	cout << "k = " << k << ". Initialized parameters: CgEdt" << endl;
 #endif
@@ -641,12 +633,12 @@ void conjugateGradient_OCR(Matrix *A_m, Matrix *x_m, Matrix *B_m, ocrGuid_t resu
 #endif
 
 	u64 nparamv[6];
-	nparamv[0] = (u64) result;
-	nparamv[1] = (u64) A_m->getRows();
-	nparamv[2] = (u64) A_m->getColumns();
-	nparamv[3] = (u64) x_m->getRows();
-	nparamv[4] = (u64) x_m->getColumns();
-	nparamv[5] = (u64) k;
+	nparamv[0] = result;
+	nparamv[1] = A_m->getRows();
+	nparamv[2] = A_m->getColumns();
+	nparamv[3] = x_m->getRows();
+	nparamv[4] = x_m->getColumns();
+	nparamv[5] = k;
 
 #ifdef DEBUG_MESSAGES
 	cout << "Init. Initialized parameters: CgEdt" << endl;
@@ -709,7 +701,7 @@ extern "C" ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv
 	conjugateGradient_OCR(&A, &x, &B, result);
 
 	u64 nparamv[1];
-	nparamv[0] = (u64) x.getRows();
+	nparamv[0] = x.getRows();
 
 	ocrGuid_t printEdtTemplate;
 	ocrEdtTemplateCreate(&printEdtTemplate, printEdt, 1, 1);
