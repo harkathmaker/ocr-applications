@@ -8,40 +8,7 @@
 #include <stdlib.h>
 #include <math.h>
 
-
-void ditfft2(float *X_real, float *X_imag, float *x_in, int N, int step, int x_in_offset) {
-	if(N == 1) {
-		//printf("x_in_offset: %d\n",x_in_offset);
-		X_real[0] = x_in[x_in_offset];
-		X_imag[0] = 0;
-	} else {
-		// DFT even side
-		ditfft2(X_real, X_imag, x_in, N/2, 2 * step, x_in_offset);
-		ditfft2(X_real+N/2, X_imag+N/2, x_in, N/2, 2 * step, x_in_offset + step);
-		int k;
-		for(k=0;k<N/2;k++) {
-			float t_real = X_real[k];
-			float t_imag = X_imag[k];
-			double twiddle_real;
-			double twiddle_imag;
-			twiddle_imag = sin(-2 * M_PI * k / N);
-			twiddle_real = cos(-2 * M_PI * k / N);
-			float xr = X_real[k+N/2];
-			float xi = X_imag[k+N/2];
-
-			// (a+bi)(c+di) = (ac - bd) + (bc + ad)i
-			X_real[k] = t_real +
-				(twiddle_real*xr - twiddle_imag*xi);
-			X_imag[k] = t_imag +
-				(twiddle_imag*xr + twiddle_real*xi);
-			X_real[k+N/2] = t_real -
-				(twiddle_real*xr - twiddle_imag*xi);
-			X_imag[k+N/2] = t_imag -
-				(twiddle_imag*xr + twiddle_real*xi);
-		}
-	}
-}
-
+#include "ditfft2.h"
 
 #define __OCR__
 #include "ocr.h"
@@ -67,7 +34,7 @@ ocrGuid_t fftEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
 			X_real[i] = 0;
 			X_imag[i] = 0;
 		}
-		ditfft2(X_real, X_imag, x_in, N, 1, 0);
+		ditfft2(X_real, X_imag, x_in, N, 1);
 	}
 
 	//for(i=0;i<N;i++) {

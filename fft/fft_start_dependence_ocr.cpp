@@ -9,51 +9,48 @@
 #include <stdlib.h>
 #include <math.h>
 
+#include "options.h"
+#include "verify.h"
+
+#ifndef __OCR__
 #define __OCR__
 #include "ocr.h"
+#endif
 
 ocrGuid_t fftStartEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
-	// Use macros from compat.h for fsim/ocr compatibility
-	//PRINTF("Hello from EDT\n");
-	//PRINTF("paramc: %d\n",paramc);
 	int i;
-	//for(i=0;i<paramc;i++) {
-	//	PRINTF("paramv[%d]: %lu\n",i,paramv[i]);
-	//}
 	ocrGuid_t startGuid = paramv[0];
 	ocrGuid_t endGuid = paramv[1];
-	float *data = depv[0].ptr;
+	float *data = (float*)depv[0].ptr;
 	ocrGuid_t dataGuid = depv[0].guid;
 	u64 N = paramv[2];
 	u64 step = paramv[3];
 	u64 offset = paramv[4];
 	u64 x_in_offset = paramv[5];
+	bool verbose = paramv[6];
+	bool printResults = paramv[7];
 	float *x_in = (float*)data;
 	float *X_real = (float*)(data+offset + N*step);
 	float *X_imag = (float*)(data+offset + 2*N*step);
-	//PRINTF("Step %d offset: %d N*step: %d\n", step, offset, N*step);
-	
-	if(step == 1) {
-		//sleep(1);
-	//for(i=0;i<N;i++) {
-	//	PRINTF("%d %f \n",i,x_in[i]);
-	//}
-	}
 
 	if(N == 1) {
 		X_real[0] = x_in[x_in_offset];
 		X_imag[0] = 0;
 	} else {
 		// DFT even side
-		u64 childParamv[6] = { startGuid, endGuid, N/2, 2 * step, 0 + offset, x_in_offset };
-		u64 childParamv2[6] = { startGuid, endGuid, N/2, 2 * step, N/2 + offset, x_in_offset + step };
+		u64 childParamv[8] = { startGuid, endGuid, N/2, 2 * step, 0 + offset, x_in_offset, verbose, printResults };
+		u64 childParamv2[8] = { startGuid, endGuid, N/2, 2 * step, N/2 + offset, x_in_offset + step, verbose, printResults };
 		
-		//PRINTF("Creating children of size %d\n",N/2);
+		if(verbose) {
+			PRINTF("Creating children of size %d\n",N/2);
+		}
 		ocrGuid_t edtGuid, edtGuid2, endEdtGuid, finishEventGuid, finishEventGuid2;
 
 		ocrEdtCreate(&edtGuid, startGuid, EDT_PARAM_DEF, childParamv, EDT_PARAM_DEF, NULL_GUID, EDT_PROP_FINISH, NULL_GUID, &finishEventGuid);
 		ocrEdtCreate(&edtGuid2, startGuid, EDT_PARAM_DEF, childParamv2, EDT_PARAM_DEF, NULL_GUID, EDT_PROP_FINISH, NULL_GUID, &finishEventGuid2);
-		//PRINTF("finishEventGuid after create: %lu\n",finishEventGuid);
+		if(verbose) {
+			PRINTF("finishEventGuid after create: %lu\n",finishEventGuid);
+		}
 
 		ocrGuid_t endDependencies[3] = { dataGuid, finishEventGuid, finishEventGuid2 };
 		// Do calculations after having divided and conquered
@@ -64,7 +61,9 @@ ocrGuid_t fftStartEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
 	}
 
 	
-	//PRINTF("Task with size %d completed\n",N);
+	if(verbose) {
+		PRINTF("Task with size %d completed\n",N);
+	}
 	return NULL_GUID;
 }
 
@@ -72,16 +71,19 @@ ocrGuid_t fftEndEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
 	int i;
 	ocrGuid_t startGuid = paramv[0];
 	ocrGuid_t endGuid = paramv[1];
-	float *data = depv[0].ptr;
+	float *data = (float*)depv[0].ptr;
 	ocrGuid_t dataGuid = depv[0].guid;
 	u64 N = paramv[2];
 	u64 step = paramv[3];
 	u64 offset = paramv[4];
+	bool verbose = paramv[6];
 	float *x_in = (float*)data+offset;
 	float *X_real = (float*)(data+offset + N*step);
 	float *X_imag = (float*)(data+offset + 2*N*step);
-	//PRINTF("Reached end phase for step %d\n",step);
-	//PRINTF("paramc: %d\n",paramc);
+	if(verbose) {
+		PRINTF("Reached end phase for step %d\n",step);
+		PRINTF("paramc: %d\n",paramc);
+	}
 
 	int k;
 	for(k=0;k<N/2;k++) {
@@ -109,70 +111,100 @@ ocrGuid_t fftEndEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
 }
 
 ocrGuid_t finalPrintEdt(u32 paramc, u64 *paramv, u32 depc, ocrEdtDep_t depv[]) {
-	//PRINTF("Final print EDT\n");
 	int i;
-	//for(i=0;i<paramc;i++) {
-	//	PRINTF("paramv[%d]: %lu\n",i,paramv[i]);
-	//}
 	ocrGuid_t startGuid = paramv[0];
 	ocrGuid_t endGuid = paramv[1];
-	float *data = depv[1].ptr;
+	float *data = (float*)depv[1].ptr;
 	ocrGuid_t dataGuid = depv[1].guid;
 	u64 N = paramv[2];
 	u64 step = paramv[3];
 	u64 offset = paramv[4];
+	bool verbose = paramv[6];
+	bool printResults = paramv[7];
 	float *x_in = (float*)data+offset;
 	float *X_real = (float*)(data+offset + N*step);
 	float *X_imag = (float*)(data+offset + 2*N*step);
 
+	if(verbose) {
+		PRINTF("Final print EDT\n");
+	}
+
 	//sleep(1);
-	//for(i=0;i<N;i++) {
-	//	PRINTF("%d [%f , %fi]\n",i,X_real[i],X_imag[i]);
-	//}
+	if(printResults) {
+		PRINTF("Starting values:\n");
+		for(i=0;i<N;i++) {
+			PRINTF("%d [ %f ]\n",i,x_in[i]);
+		}
+		PRINTF("\n");
+
+		PRINTF("Final result:\n");
+		for(i=0;i<N;i++) {
+			PRINTF("%d [%f + %fi]\n",i,X_real[i],X_imag[i]);
+		}
+	}
 
 	ocrShutdown();
 }
 
-ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
+extern "C" ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
 	ocrGuid_t startTempGuid,endTempGuid,printTempGuid;
-	ocrEdtTemplateCreate(&startTempGuid, &fftStartEdt, 6, 1);
-	ocrEdtTemplateCreate(&endTempGuid, &fftEndEdt, 6, 3);
-	ocrEdtTemplateCreate(&printTempGuid, &finalPrintEdt, 6, 2);
+	ocrEdtTemplateCreate(&startTempGuid, &fftStartEdt, 8, 1);
+	ocrEdtTemplateCreate(&endTempGuid, &fftEndEdt, 8, 3);
+	ocrEdtTemplateCreate(&printTempGuid, &finalPrintEdt, 8, 2);
 
-	int N = 65536;
+
+	u64 argc = getArgc(depv[0].ptr);
+	int i;
+	char *argv[argc];
+	for(i=0;i<argc;i++) {
+		argv[i] = getArgv(depv[0].ptr,i);
+	}
+
+	u64 N;
+	u64 iterations;
+	bool verify;
+	bool verbose;
+	bool printResults;
+	if(!parseOptions(argc,argv,&N,&verify,&iterations,&verbose,&printResults)) {
+		printHelp(argv);
+		ocrShutdown();
+		return NULL_GUID;
+	}
+	if(verbose) {
+		for(i=0;i<argc;i++) {
+			PRINTF("argv[%d]: %s\n",i,argv[i]);
+		}
+		PRINTF("Running %d iterations\n",iterations);
+	}
+	
 	// x_in, X_real, and X_imag in a contiguous block
 	float *x;
 	ocrGuid_t dataGuid;
 	DBCREATE(&dataGuid, (void **) &x, sizeof(float) * N * 3, 0, NULL_GUID, NO_ALLOC);
 	
-	int i;
 	for(i=0;i<N;i++) {
 		x[i] = 0;
 	}
 	x[1] = 1;
-	x[3] = -3;
-	x[4] = 8;
-	x[5] = 9;
-	x[6] = 1;
-
-
-	u64 edtParamv[6] = { startTempGuid, endTempGuid, N, 1 /* step size */, 0 /* offset */, 0 /* x_in_offset */ };
+	//x[3] = -3;
+	//x[4] = 8;
+	//x[5] = 9;
+	//x[6] = 1;
 	
-	PRINTF("sizeof(ocrGuid_t): %d\n",sizeof(ocrGuid_t));
-	PRINTF("paramc: %u\n",paramc);
-	for(i=0;i<paramc;i++) {
-		PRINTF("%lu\n",paramv[i]);
-	}
-
+	u64 edtParamv[8] = { startTempGuid, endTempGuid, N, 1 /* step size */, 0 /* offset */, 0 /* x_in_offset */, verbose, printResults };
+	
 
 	// Create an EDT out of the EDT template
 	ocrGuid_t edtGuid, printEdtGuid, edtEventGuid;
 	ocrEdtCreate(&edtGuid, startTempGuid, EDT_PARAM_DEF, edtParamv, EDT_PARAM_DEF, NULL_GUID, EDT_PROP_FINISH, NULL_GUID, &edtEventGuid);
 
-	//sleep(1);
+	if(verify) {
+		edtEventGuid = setUpVerify(dataGuid, NULL_GUID, NULL_GUID, N, edtEventGuid);
+	}
 	ocrGuid_t finishDependencies[2] = { edtEventGuid, dataGuid };
 	ocrEdtCreate(&printEdtGuid, printTempGuid, EDT_PARAM_DEF, edtParamv, EDT_PARAM_DEF, finishDependencies, EDT_PROP_NONE, NULL_GUID, NULL);
 	
+	// Dependency tree is set up so we can start the work
 	ocrAddDependence(dataGuid, edtGuid, 0, DB_MODE_ITW);
 
 	return NULL_GUID;
