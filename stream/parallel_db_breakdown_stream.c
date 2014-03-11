@@ -19,7 +19,7 @@
 #endif
 
 #ifndef NSPLIT
-#	define NSPLIT	2
+#	define NSPLIT	10
 #endif
 
 #ifndef CHUNK
@@ -58,18 +58,20 @@ ocrGuid_t resultsEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 		ai = bi + scalar * ci;
 	}
 
-	// for (i = 0; i < NSPLIT; i++)
-		// for (j = 0; j < NTIMES; j++)
-			// timingsum[j] += data[i][3 * CHUNK + j];
+	for (i = 1; i <= NSPLIT; i++) {
+		STREAM_TYPE * cur = (STREAM_TYPE *) depv[i].ptr;
+		for (j = 0; j < NTIMES; j++)
+			timingsum[j] += cur[3 * CHUNK + j];
+	}
 
 
-	// PRINTF("Timing Results:\n");
-	// for (i = 0; i < NTIMES; i++) {
-		// PRINTF("TRIAL %d: %f s\n", i + 1, timingsum[i]);
-		// totalsum += timingsum[i];
-	// }
-	// PRINTF("AVERAGE Time Per CHUNK: %f s\n", totalsum / NTIMES / NSPLIT);
-	// PRINTF("AVERAGE Time Per Trial: %f s\n", totalsum / NTIMES);
+	PRINTF("Timing Results:\n");
+	for (i = 0; i < NTIMES; i++) {
+		PRINTF("TRIAL %d: %f s\n", i + 1, timingsum[i]);
+		totalsum += timingsum[i];
+	}
+	PRINTF("AVERAGE Time Per CHUNK: %f s\n", totalsum / NTIMES / NSPLIT);
+	PRINTF("AVERAGE Time Per Trial: %f s\n", totalsum / NTIMES);
 
 	PRINTF("After %d Iterations:\n", NTIMES);
 	if ((ai - a + bi - b + ci - c) == 0)
