@@ -35,14 +35,10 @@ double mysecond() {
 
 ocrGuid_t resultsEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 	u64 i, j;
-	STREAM_TYPE * data = (STREAM_TYPE *) depv[1].ptr;
-	// TODO: Check each CHUNK's value
-	STREAM_TYPE a = data[0];
-	STREAM_TYPE b = data[CHUNK];
-	STREAM_TYPE c = data[2 * CHUNK];
+	STREAM_TYPE a, b, c, timingsum[NTIMES];
 	STREAM_TYPE ai, bi, ci, scalar;
 	STREAM_TYPE totalsum = 0.0;
-	STREAM_TYPE timingsum[NTIMES] = {0};
+	a = b = c = 0;
 
 	// Reproduce initializations
 	ai = 1.0;
@@ -58,12 +54,14 @@ ocrGuid_t resultsEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 		ai = bi + scalar * ci;
 	}
 
-	for (i = 1; i <= NSPLIT; i++) {
+	for (i = 0; i < NSPLIT; i++) {
 		STREAM_TYPE * cur = (STREAM_TYPE *) depv[i].ptr;
+		a += cur[0];
+		b += cur[CHUNK];
+		c += cur[2 * CHUNK];
 		for (j = 0; j < NTIMES; j++)
 			timingsum[j] += cur[3 * CHUNK + j];
 	}
-
 
 	PRINTF("Timing Results:\n");
 	for (i = 0; i < NTIMES; i++) {
@@ -74,12 +72,12 @@ ocrGuid_t resultsEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 	PRINTF("AVERAGE Time Per Trial: %f s\n", totalsum / NTIMES);
 
 	PRINTF("After %d Iterations:\n", NTIMES);
-	if ((ai - a + bi - b + ci - c) == 0)
+	if ((NSPLIT * ai - a + NSPLIT * bi - b + NSPLIT * ci - c) == 0)
 		PRINTF("No differences between expected and actual\n");
 	else  
 		PRINTF("Expected a: %f, Actual a: %f\n"
 			   "Expected b: %f, Actual b: %f\n"
-			   "Expected c: %f, Actual c: %f\n", ai, a, bi, b, ci, c);
+			   "Expected c: %f, Actual c: %f\n", NSPLIT* ai, a, NSPLIT * bi, b, NSPLIT * ci, c);
 
 	ocrShutdown();
 	return NULL_GUID;
@@ -198,9 +196,10 @@ ocrGuid_t mainEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 				 EDT_PROP_NONE, NULL_GUID, NULL);
 
 	// Dependencies for iterator and results
-	ocrAddDependence(iterOutput, resultsGuid, 0, DB_MODE_RO);
+
 	for (i = 0; i < NSPLIT; i++)
-		ocrAddDependence(dataGuids[i], resultsGuid, i + 1, DB_MODE_RO);
+		ocrAddDependence(dataGuids[i], resultsGuid, i, DB_MODE_RO);
+	ocrAddDependence(iterOutput, resultsGuid, NSPLIT, DB_MODE_RO);
 	for (i = 0; i < NSPLIT; i++)
 		ocrAddDependence(dataGuids[i], iterGuid, i, DB_MODE_EW);
 
