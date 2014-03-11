@@ -32,10 +32,10 @@ double mysecond() {
 ocrGuid_t copyEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 	u64 i;
 	STREAM_TYPE * data = (STREAM_TYPE *) depv[0].ptr;
-	//data[3 * STREAM_ARRAY_SIZE + paramv[0] - 1] = mysecond();
+	data[3 * STREAM_ARRAY_SIZE + paramv[0] - 1] = mysecond();
 	for (i = 0; i < STREAM_ARRAY_SIZE; i++)
 		data[2 * STREAM_ARRAY_SIZE + i] = data[i];
-	//data[3 * STREAM_ARRAY_SIZE + paramv[0] - 1] = mysecond() - data[3 * STREAM_ARRAY_SIZE + paramv[0] - 1];
+	data[3 * STREAM_ARRAY_SIZE + paramv[0] - 1] = mysecond() - data[3 * STREAM_ARRAY_SIZE + paramv[0] - 1];
 	// PRINTF("FINISHED COPY\n");
 	return NULL_GUID;
 }
@@ -43,10 +43,11 @@ ocrGuid_t copyEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 ocrGuid_t scaleEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 	u64 i;
 	STREAM_TYPE * data = (STREAM_TYPE *) depv[0].ptr;
-	//data[3 * STREAM_ARRAY_SIZE + paramv[0] - 1] = mysecond();
+	STREAM_TYPE time = mysecond();
 	for (i = 0; i < STREAM_ARRAY_SIZE; i++)
 		data[STREAM_ARRAY_SIZE + i] = SCALAR * data[2 * STREAM_ARRAY_SIZE + i];
-	//data[3 * STREAM_ARRAY_SIZE + paramv[0] - 1] = mysecond() - data[3 * STREAM_ARRAY_SIZE + paramv[0] - 1];
+	time = mysecond() - time;
+	data[3 * STREAM_ARRAY_SIZE + paramv[0] - 1] += time;
 	// PRINTF("FINISHED SCALE\n");
 	return NULL_GUID;
 }
@@ -54,10 +55,11 @@ ocrGuid_t scaleEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 ocrGuid_t addEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 	u64 i;
 	STREAM_TYPE * data = (STREAM_TYPE *) depv[0].ptr;
-	//data[3 * STREAM_ARRAY_SIZE + paramv[0] - 1] = mysecond();
+	STREAM_TYPE time = mysecond();
 	for (i = 0; i < STREAM_ARRAY_SIZE; i++)
 		data[2 * STREAM_ARRAY_SIZE + i] = data[i] + data[STREAM_ARRAY_SIZE + i];
-	//data[3 * STREAM_ARRAY_SIZE + paramv[0] - 1] = mysecond() - data[3 * STREAM_ARRAY_SIZE + paramv[0] - 1];
+		time = mysecond() - time;
+	data[3 * STREAM_ARRAY_SIZE + paramv[0] - 1] += time;
 	// PRINTF("FINISHED ADD\n");
 	return NULL_GUID;
 }
@@ -65,10 +67,11 @@ ocrGuid_t addEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 ocrGuid_t triadEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 	u64 i;
 	STREAM_TYPE * data = (STREAM_TYPE *) depv[0].ptr;
-	//data[3 * STREAM_ARRAY_SIZE + paramv[0] - 1] = mysecond();
+	STREAM_TYPE time = mysecond();
 	for (i = 0; i < STREAM_ARRAY_SIZE; i++)
 		data[i] = data[STREAM_ARRAY_SIZE + i] + SCALAR * data[2 * STREAM_ARRAY_SIZE + i];
-	//data[3 * STREAM_ARRAY_SIZE + paramv[0] - 1] = mysecond() - data[3 * STREAM_ARRAY_SIZE + paramv[0] - 1];
+	time = mysecond() - time;
+	data[3 * STREAM_ARRAY_SIZE + paramv[0] - 1] += time;
 	// PRINTF("FINISHED TRIAD\n");
 	return NULL_GUID;
 }
@@ -135,13 +138,13 @@ ocrGuid_t resultsEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 		ai = bi + SCALAR * ci;
 	}
 
-	// PRINTF("Timing Results:\n");
-	// for (i = 0; i < NTIMES; i++) {
-		// STREAM_TYPE timing = data[3 * STREAM_ARRAY_SIZE + i];
-		// PRINTF("TRIAL %d: %f s\n", i + 1, timing);
-		// timingsum += timing;
-	// }
-	// PRINTF("AVERAGE: %f s\n", timingsum / NTIMES);
+	PRINTF("Timing Results:\n");
+	for (i = 0; i < NTIMES; i++) {
+		STREAM_TYPE timing = data[3 * STREAM_ARRAY_SIZE + i];
+		PRINTF("TRIAL %d: %f s\n", i + 1, timing);
+		timingsum += timing;
+	}
+	PRINTF("AVERAGE: %f s\n", timingsum / NTIMES);
 
 	PRINTF("After %d Iterations:\n", NTIMES);
 	if ((ai - a + bi - b + ci - c) == 0)
