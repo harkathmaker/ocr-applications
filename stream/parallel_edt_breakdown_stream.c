@@ -6,16 +6,16 @@
 #include <unistd.h>
 #include <sys/time.h> 
 
-#ifndef STREAM_ARRAY_SIZE
-#	define STREAM_ARRAY_SIZE	100
+#ifndef STREAM_TYPE
+#	define STREAM_TYPE double
 #endif
 
 #ifndef NTIMES
 #	define NTIMES	5
 #endif
 
-#ifndef STREAM_TYPE
-#	define STREAM_TYPE double
+#ifndef STREAM_ARRAY_SIZE
+#	define STREAM_ARRAY_SIZE	100
 #endif
 
 #ifndef SCALAR
@@ -58,7 +58,7 @@ ocrGuid_t addEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 	STREAM_TYPE time = mysecond();
 	for (i = 0; i < STREAM_ARRAY_SIZE; i++)
 		data[2 * STREAM_ARRAY_SIZE + i] = data[i] + data[STREAM_ARRAY_SIZE + i];
-		time = mysecond() - time;
+	time = mysecond() - time;
 	data[3 * STREAM_ARRAY_SIZE + paramv[0] - 1] += time;
 	// PRINTF("FINISHED ADD\n");
 	return NULL_GUID;
@@ -157,6 +157,7 @@ ocrGuid_t resultsEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 	ocrShutdown();
 	return NULL_GUID;
 }
+
 ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
 	u64 i;
 	u64 nparamc = 6;
