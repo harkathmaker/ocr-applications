@@ -1,7 +1,5 @@
 #define __OCR__
 #include "ocr.h"
-
-/* STREAM Headers */
 #include <stdio.h>
 #include <unistd.h>
 #include <sys/time.h> 
@@ -18,6 +16,19 @@
 #	define STREAM_TYPE double
 #endif
 
+#ifndef SCALAR
+#	define SCALAR	3.0
+#endif
+
+/*
+	NOTES: 
+	One large datablock is used with ranges of indexes corresponding to the following:
+			  a --> [0 to (STREAM_ARRAY_SIZE - 1)]
+			  b --> [STREAM_ARRAY_SIZE to (2 * STREAM_ARRAY_SIZE - 1)]
+			  c --> [2 * STREAM_ARRAY_SIZE to (3 * STREAM_ARRAY_SIZE - 1)]
+		timings --> [3 * STREAM_ARRAY_SIZE to (3 * STREAM_ARRAY_SIZE + NTIMES - 1)]
+*/
+
 double mysecond() {
 	struct timeval tp;
 	struct timezone tzp;
@@ -26,9 +37,11 @@ double mysecond() {
 }
 
 ocrGuid_t iterEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
-	STREAM_TYPE * data = (STREAM_TYPE *) depv[0].ptr;
 	u64 i;
-	STREAM_TYPE scalar = 3.0;
+	ocrGuid_t iterGuid;
+	ocrGuid_t iterTemplateGuid = paramv[1];
+	ocrGuid_t dataGuid = (ocrGuid_t) depv[0].guid;
+	STREAM_TYPE * data = (STREAM_TYPE *) depv[0].ptr;
 
 	data[3 * STREAM_ARRAY_SIZE + paramv[0] - 1] = mysecond();
 
@@ -37,7 +50,7 @@ ocrGuid_t iterEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 	// PRINTF("FINISHED COPY\n");
 
 	for (i = 0; i < STREAM_ARRAY_SIZE; i++)
-		data[STREAM_ARRAY_SIZE + i] = scalar * data[2 * STREAM_ARRAY_SIZE + i];
+		data[STREAM_ARRAY_SIZE + i] = SCALAR * data[2 * STREAM_ARRAY_SIZE + i];
 	// PRINTF("FINISHED SCALE\n");
 
 	for (i = 0; i < STREAM_ARRAY_SIZE; i++)
@@ -45,26 +58,17 @@ ocrGuid_t iterEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 	// PRINTF("FINISHED ADD\n");
 
 	for (i = 0; i < STREAM_ARRAY_SIZE; i++)
-		data[i] = data[STREAM_ARRAY_SIZE + i] + scalar * data[2 * STREAM_ARRAY_SIZE + i];
+		data[i] = data[STREAM_ARRAY_SIZE + i] + SCALAR * data[2 * STREAM_ARRAY_SIZE + i];
 	// PRINTF("FINISHED TRIAD\n");
 
 	data[3 * STREAM_ARRAY_SIZE + paramv[0] - 1] = mysecond() - data[3 * STREAM_ARRAY_SIZE + paramv[0] - 1];
-
 	// PRINTF("FINISHED ITER\n");
 
-	if (paramv[0] < paramv[1]) {
-		ocrGuid_t dataGuid = (ocrGuid_t) depv[0].guid;
+	if (paramv[0] < NTIMES) {
 		paramv[0] += 1;
-		
-		// EDT Template for next iteration
-		ocrGuid_t iterTemplateGuid;
-		ocrEdtTemplateCreate(&iterTemplateGuid, iterEdt, sizeof(paramv), 1);
-
-		// EDT for next iteration
-		ocrGuid_t iterGuid;
+		// Create next iterator EDT
 		ocrEdtCreate(&iterGuid, iterTemplateGuid, EDT_PARAM_DEF, paramv, EDT_PARAM_DEF, NULL_GUID,
-			EDT_PROP_FINISH, NULL_GUID, NULL);
-
+					 EDT_PROP_FINISH, NULL_GUID, NULL);
 		ocrAddDependence(dataGuid, iterGuid, 0, DB_MODE_EW);
 	}
 	return NULL_GUID;
@@ -76,7 +80,8 @@ ocrGuid_t resultsEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 	STREAM_TYPE a = data[0];
 	STREAM_TYPE b = data[STREAM_ARRAY_SIZE];
 	STREAM_TYPE c = data[2 * STREAM_ARRAY_SIZE];
-	STREAM_TYPE ai, bi, ci, scalar;
+	STREAM_TYPE ai, bi, ci;
+	STREAM_TYPE timing;
 	STREAM_TYPE timingsum = 0.0;
 
 	// Reproduce initializations
@@ -85,17 +90,16 @@ ocrGuid_t resultsEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 	ci = 0.0;
 
 	// Execute timing loop
-	scalar = 3.0;
 	for (i = 0; i < NTIMES; i++) {
 		ci = ai;
-		bi = scalar * ci;
+		bi = SCALAR * ci;
 		ci = ai + bi;
-		ai = bi + scalar * ci;
+		ai = bi + SCALAR * ci;
 	}
 
 	PRINTF("Timing Results:\n");
 	for (i = 0; i < NTIMES; i++) {
-		STREAM_TYPE timing = data[3 * STREAM_ARRAY_SIZE + i];
+		timing = data[3 * STREAM_ARRAY_SIZE + i];
 		PRINTF("TRIAL %d: %f s\n", i + 1, timing);
 		timingsum += timing;
 	}
@@ -112,13 +116,19 @@ ocrGuid_t resultsEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 	ocrShutdown();
 	return NULL_GUID;
 }
-ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
-	u64 i, nparamv[2] = {1, NTIMES};
 
-	// Preparing datablock
-	STREAM_TYPE * dataArray;
+ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
+	u64 i, nparamc = 2;
+	ocrGuid_t iterTemplateGuid, resultsTemplateGuid;
+	ocrEdtTemplateCreate(&iterTemplateGuid, &iterEdt, nparamc, 1);
+	ocrEdtTemplateCreate(&resultsTemplateGuid, &resultsEdt, 0, 2);
+
+	u64 i, nparamv[2] = {1, iterTemplateGuid};
+
+	// Formatting datablock
 	ocrGuid_t dataGuid;
-	DBCREATE(&dataGuid,(void **) &dataArray, sizeof(ocrGuid_t)*(3 * STREAM_ARRAY_SIZE + NTIMES), 0, NULL_GUID, NO_ALLOC);
+	STREAM_TYPE * dataArray;
+	DBCREATE(&dataGuid, (void **) &dataArray, sizeof(STREAM_TYPE) * (3 * STREAM_ARRAY_SIZE + NTIMES), 0, NULL_GUID, NO_ALLOC);
 	for (i = 0; i < STREAM_ARRAY_SIZE; i++){
 		dataArray[i] = 1.0;
 		dataArray[STREAM_ARRAY_SIZE + i] = 2.0;
@@ -127,31 +137,17 @@ ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
 	for (i = 3 * STREAM_ARRAY_SIZE; i < NTIMES; i++)
 		dataArray[i] = 0.0;
 
-	// EDT Template for iterator
-	ocrGuid_t iterTemplateGuid;
-	ocrEdtTemplateCreate(&iterTemplateGuid, iterEdt, sizeof(nparamv), 1);
-
-	// EDT for iterator
-	ocrGuid_t iterGuid, iterOutput;
+	// Create iterator and results EDTs
+	ocrGuid_t iterGuid, iterDone, resultsGuid;
 	ocrEdtCreate(&iterGuid, iterTemplateGuid, EDT_PARAM_DEF, nparamv, EDT_PARAM_DEF, NULL_GUID,
-		EDT_PROP_FINISH, NULL_GUID, &iterOutput);
-
-	// Dependencies for iterator
-	ocrAddDependence(dataGuid, iterGuid, 0, DB_MODE_EW);
-
-	// EDT Template for results
-	ocrGuid_t resultsTemplateGuid;
-	ocrEdtTemplateCreate(&resultsTemplateGuid, resultsEdt, 0, 2);
-
-	// EDT for results
-	ocrGuid_t resultsGuid;
+				 EDT_PROP_FINISH, NULL_GUID, &iterDone);
 	ocrEdtCreate(&resultsGuid, resultsTemplateGuid, EDT_PARAM_DEF, NULL_GUID, EDT_PARAM_DEF, NULL_GUID,
-		EDT_PROP_NONE, NULL_GUID, NULL);
+				 EDT_PROP_NONE, NULL_GUID, NULL);
 
-	// Dependencies for results
-	ocrAddDependence(iterOutput, resultsGuid, 0, DB_MODE_RO);
-	ocrAddDependence(dataGuid, resultsGuid, 1, DB_MODE_RO);
-
+	// Dependencies for iterator and results
+	ocrAddDependence(dataGuid, resultsGuid, 0, DB_MODE_RO);
+	ocrAddDependence(iterDone, resultsGuid, 1, DB_MODE_RO);
+	ocrAddDependence(dataGuid, iterGuid, 0, DB_MODE_EW);
 	// PRINTF("FINISHED MAIN\n");
 	return NULL_GUID;
 }
