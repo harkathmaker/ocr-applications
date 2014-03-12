@@ -1,8 +1,12 @@
 #define __OCR__
 #include "ocr.h"
 #include <stdio.h>
-#include <unistd.h>
 #include <sys/time.h> 
+#include <unistd.h>
+
+#ifndef STREAM_TYPE
+#	define STREAM_TYPE double
+#endif
 
 #ifndef STREAM_ARRAY_SIZE
 #	define STREAM_ARRAY_SIZE	100
@@ -10,10 +14,6 @@
 
 #ifndef NTIMES
 #	define NTIMES	5
-#endif
-
-#ifndef STREAM_TYPE
-#	define STREAM_TYPE double
 #endif
 
 #ifndef SCALAR
@@ -76,7 +76,7 @@ ocrGuid_t iterEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 
 ocrGuid_t resultsEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 	u64 i;
-	STREAM_TYPE * data = (STREAM_TYPE *) depv[1].ptr;
+	STREAM_TYPE * data = (STREAM_TYPE *) depv[0].ptr;
 	STREAM_TYPE a = data[0];
 	STREAM_TYPE b = data[STREAM_ARRAY_SIZE];
 	STREAM_TYPE c = data[2 * STREAM_ARRAY_SIZE];
@@ -119,15 +119,14 @@ ocrGuid_t resultsEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 
 ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
 	u64 i, nparamc = 2;
-	ocrGuid_t iterTemplateGuid, resultsTemplateGuid;
+	STREAM_TYPE * dataArray;
+	ocrGuid_t dataGuid, iterTemplateGuid, iterGuid, iterDone, resultsTemplateGuid, resultsGuid;
 	ocrEdtTemplateCreate(&iterTemplateGuid, &iterEdt, nparamc, 1);
 	ocrEdtTemplateCreate(&resultsTemplateGuid, &resultsEdt, 0, 2);
 
-	u64 i, nparamv[2] = {1, iterTemplateGuid};
+	u64 nparamv[2] = {1, iterTemplateGuid};
 
 	// Formatting datablock
-	ocrGuid_t dataGuid;
-	STREAM_TYPE * dataArray;
 	DBCREATE(&dataGuid, (void **) &dataArray, sizeof(STREAM_TYPE) * (3 * STREAM_ARRAY_SIZE + NTIMES), 0, NULL_GUID, NO_ALLOC);
 	for (i = 0; i < STREAM_ARRAY_SIZE; i++){
 		dataArray[i] = 1.0;
@@ -138,7 +137,6 @@ ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
 		dataArray[i] = 0.0;
 
 	// Create iterator and results EDTs
-	ocrGuid_t iterGuid, iterDone, resultsGuid;
 	ocrEdtCreate(&iterGuid, iterTemplateGuid, EDT_PARAM_DEF, nparamv, EDT_PARAM_DEF, NULL_GUID,
 				 EDT_PROP_FINISH, NULL_GUID, &iterDone);
 	ocrEdtCreate(&resultsGuid, resultsTemplateGuid, EDT_PARAM_DEF, NULL_GUID, EDT_PARAM_DEF, NULL_GUID,
