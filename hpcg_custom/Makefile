@@ -17,10 +17,11 @@ OCR_RUN_FLAGS=-ocr:cfg ${OCR_CONFIG}
 all-test: compile run
 
 compile:
-	g++ $(CFLAGS) main.cpp matrix.cpp
-	g++ -g -o $(PROG).exe main.o matrix.o $(OCR_FLAGS)
+	g++ $(CFLAGS) timer.cpp main.cpp matrix.cpp
+	g++ -g -o $(PROG).exe timer.o main.o matrix.o $(OCR_FLAGS)
 
 run:
+	octave ./cgmatrix.m
 	./$(PROG).exe $(OCR_RUN_FLAGS)
 
 clean:

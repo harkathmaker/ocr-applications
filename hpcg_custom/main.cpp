@@ -6,14 +6,16 @@
  */
 
 #include <iostream>
+#include <fstream>
 #include <cmath>
 #include <time.h>
+#include <cstdlib>
 
 extern "C" {
 #include <pthread.h>
 }
 
-#define DEBUG_MESSAGES
+//#define DEBUG_MESSAGES
 
 #ifndef __OCR__
 #define __OCR__
@@ -22,10 +24,19 @@ extern "C" {
 #include "ocr.h"
 
 #include "matrix.h"
+#include "timer.h"
 
-#define K_ITERATIONS 20
+#define K_ITERATIONS 100
+#define MATRIX_N 500
 
 using namespace std;
+
+// Generates a random double
+double fRand(double fMin, double fMax)
+{
+    double f = (double)rand() / RAND_MAX;
+    return fMin + f * (fMax - fMin);
+}
 
 //Parameters: A_rows, A_columns
 //Dependencies: A_event, scalar_event (double)
@@ -114,7 +125,7 @@ extern "C" ocrGuid_t divideEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t de
 	return dataBlock;
 }
 
-//Parameters: x_rows
+//Parameters: x_rows, t1.sec, t1.usec
 //Dependencies: A_event
 //Output: NULL_GUID
 //Not thread safe
@@ -125,13 +136,24 @@ extern "C" ocrGuid_t printEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t dep
 	cout << "printEdt()" << endl;
 #endif
 	int rows = (int) paramv[0];
+	time_t sec = (time_t) paramv[1];
+	time_t usec = (suseconds_t) paramv[2];
 	double* r = (double*) depv[0].ptr;
 
 	cout << "Solution:" << endl;
 	for (int i = 0; i < rows; i++)
-		cout << i << ",1: " << r[i] << endl;
+		cout << r[i] << endl;
 
+	timeval t2;
+	t2.tv_sec = sec;
+	t2.tv_usec = usec;
+	double cgOcrTimeElapsed = tock(t2);
+
+	cout << "Time to test Conjugate Gradient OCR: " << cgOcrTimeElapsed << " ms" << endl << endl;
+
+#ifdef DEBUG_MESSAGES
 	cout << "OCR Shutdown..." << endl;
+#endif
 	ocrShutdown();
 	return NULL_GUID;
 }
@@ -168,7 +190,7 @@ extern "C" ocrGuid_t CgEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]
 #endif
 		return NULL_GUID;
 	}
-	
+
 	u64 edtParams[4];
 
 	ocrGuid_t scaleEdtTemplate;
@@ -284,23 +306,23 @@ extern "C" ocrGuid_t CgEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]
 
 	//ocrDbDestroy(ap);
 
-	ocrGuid_t aA;
+	ocrGuid_t Ap;
 	ocrGuid_t edtI;
 	edtParams[0] = A_rows;
 	edtParams[1] = A_columns;
-	ocrEdtCreate(&edtI, scaleEdtTemplate, EDT_PARAM_DEF, edtParams, EDT_PARAM_DEF,
-		NULL_GUID, EDT_PROP_NONE, NULL_GUID, &aA);
+	edtParams[2] = X_old_rows;
+	edtParams[3] = X_old_columns;
+	ocrEdtCreate(&edtI, productEdtTemplate, EDT_PARAM_DEF, edtParams, EDT_PARAM_DEF,
+		NULL_GUID, EDT_PROP_NONE, NULL_GUID, &Ap);
 #ifdef DEBUG_MESSAGES
 	cout << "k = " << k << ". Created Edt: edtI" << endl;
 #endif
 
 	ocrGuid_t aAp;
 	ocrGuid_t edtJ;
-	edtParams[0] = A_rows;
-	edtParams[1] = A_columns;
-	edtParams[2] = X_old_rows;
-	edtParams[3] = X_old_columns;
-	ocrEdtCreate(&edtJ, productEdtTemplate, EDT_PARAM_DEF, edtParams, EDT_PARAM_DEF,
+	edtParams[0] = X_old_rows;
+	edtParams[1] = X_old_columns;
+	ocrEdtCreate(&edtJ, scaleEdtTemplate, EDT_PARAM_DEF, edtParams, EDT_PARAM_DEF,
 		NULL_GUID, EDT_PROP_NONE, NULL_GUID, &aAp);
 #ifdef DEBUG_MESSAGES
 	cout << "k = " << k << ". Created Edt: edtJ" << endl;
@@ -419,19 +441,19 @@ extern "C" ocrGuid_t CgEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]
 #ifdef DEBUG_MESSAGES
 	cout << "k = " << k << ". Added dependencies: CgEdt" << endl;
 #endif
-	
+
 	ocrAddDependence(r_new, edtP, 0, DB_MODE_RO);
 	ocrAddDependence(bp, edtP, 1, DB_MODE_RO);
 #ifdef DEBUG_MESSAGES
 	cout << "k = " << k << ". Added dependencies: edtP" << endl;
 #endif
-	
+
 	ocrAddDependence(p_old, edtO, 0, DB_MODE_RO);
 	ocrAddDependence(beta, edtO, 1, DB_MODE_RO);
 #ifdef DEBUG_MESSAGES
 	cout << "k = " << k << ". Added dependencies: edtO" << endl;
 #endif
-	
+
 	ocrAddDependence(rT_newr, edtN, 0, DB_MODE_RO);
 	ocrAddDependence(rTr, edtN, 1, DB_MODE_RO);
 #ifdef DEBUG_MESSAGES
@@ -443,81 +465,80 @@ extern "C" ocrGuid_t CgEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]
 #ifdef DEBUG_MESSAGES
 	cout << "k = " << k << ". Added dependencies: edtM" << endl;
 #endif
-	
+
 	ocrAddDependence(r_new, edtL, 0, DB_MODE_RO);
 #ifdef DEBUG_MESSAGES
 	cout << "k = " << k << ". Added dependencies: edtL" << endl;
 #endif
-	
+
 	ocrAddDependence(r_old, edtK, 0, DB_MODE_RO);
 	ocrAddDependence(aAp, edtK, 1, DB_MODE_RO);
 #ifdef DEBUG_MESSAGES
 	cout << "k = " << k << ". Added dependencies: edtK" << endl;
 #endif
-	
-	ocrAddDependence(aA, edtJ, 0, DB_MODE_RO);
-	ocrAddDependence(p_old, edtJ, 1, DB_MODE_RO);
+
+	ocrAddDependence(Ap, edtJ, 0, DB_MODE_RO);
+	ocrAddDependence(alpha, edtJ, 1, DB_MODE_RO);
 #ifdef DEBUG_MESSAGES
 	cout << "k = " << k << ". Added dependencies: edtJ" << endl;
 #endif
-	
+
 	ocrAddDependence(A, edtI, 0, DB_MODE_RO);
-	ocrAddDependence(alpha, edtI, 1, DB_MODE_RO);
+	ocrAddDependence(p_old, edtI, 1, DB_MODE_RO);
 #ifdef DEBUG_MESSAGES
 	cout << "k = " << k << ". Added dependencies: edtI" << endl;
 #endif
-	
+
 	ocrAddDependence(x_old, edtH, 0, DB_MODE_RO);
 	ocrAddDependence(ap, edtH, 1, DB_MODE_RO);
 #ifdef DEBUG_MESSAGES
 	cout << "k = " << k << ". Added dependencies: edtH" << endl;
 #endif
-	
+
 	ocrAddDependence(p_old, edtG, 0, DB_MODE_RO);
 	ocrAddDependence(alpha, edtG, 1, DB_MODE_RO);
 #ifdef DEBUG_MESSAGES
 	cout << "k = " << k << ". Added dependencies: edtG" << endl;
 #endif
-	
+
 	ocrAddDependence(rTr, edtF, 0, DB_MODE_RO);
 	ocrAddDependence(pTAp, edtF, 1, DB_MODE_RO);
 #ifdef DEBUG_MESSAGES
 	cout << "k = " << k << ". Added dependencies: edtF" << endl;
 #endif
-	
+
 	ocrAddDependence(pTA, edtE, 0, DB_MODE_RO);
 	ocrAddDependence(p_old, edtE, 1, DB_MODE_RO);
 #ifdef DEBUG_MESSAGES
 	cout << "k = " << k << ". Added dependencies: edtE" << endl;
 #endif
-	
+
 	ocrAddDependence(pT, edtD, 0, DB_MODE_RO);
 	ocrAddDependence(A, edtD, 1, DB_MODE_RO);
 #ifdef DEBUG_MESSAGES
 	cout << "k = " << k << ". Added dependencies: edtD" << endl;
 #endif
-	
+
 	ocrAddDependence(p_old, edtC, 0, DB_MODE_RO);
 #ifdef DEBUG_MESSAGES
 	cout << "k = " << k << ". Added dependencies: edtC" << endl;
 #endif
-	
+
 	ocrAddDependence(rT, edtB, 0, DB_MODE_RO);
 	ocrAddDependence(r_old, edtB, 1, DB_MODE_RO);
 #ifdef DEBUG_MESSAGES
 	cout << "k = " << k << ". Added dependencies: edtB" << endl;
 #endif
-	
+
 	ocrAddDependence(r_old, edtA, 0, DB_MODE_RO);
 #ifdef DEBUG_MESSAGES
 	cout << "k = " << k << ". Added dependencies: edtA" << endl;
 #endif
-	
+
 	return NULL_GUID;
 }
 
 //do error checks later
-
 Matrix* conjugateGradient(Matrix *A, Matrix *x, Matrix *B)
 {
 	Matrix *x_new;
@@ -528,6 +549,8 @@ Matrix* conjugateGradient(Matrix *A, Matrix *x, Matrix *B)
 	delete Ax;
 	Matrix foo(r_old);
 	Matrix *p_old = &foo;
+
+	cout << "derp" << endl;
 
 	int k = 0;
 	while (k < K_ITERATIONS) {
@@ -566,10 +589,12 @@ Matrix* conjugateGradient(Matrix *A, Matrix *x, Matrix *B)
 
 		delete r_old;
 		r_old = r_new;
-		//if (k != 0) {
-		//delete x_old;
-		//delete p_old;
-		//}
+		if (k >= 2) {
+			if (x_old)
+				delete x_old;
+			if (p_old)
+				delete p_old;
+		}
 		x_old = x_new;
 		p_old = p_new;
 	}
@@ -603,7 +628,7 @@ void conjugateGradient_OCR(Matrix *A_m, Matrix *x_m, Matrix *B_m, ocrGuid_t resu
 #ifdef DEBUG_MESSAGES
 	cout << "Init. Created Edt templates: product, subtract" << endl;
 #endif
-	
+
 	u64 edtParams[4];
 
 	ocrGuid_t Ax;
@@ -661,7 +686,7 @@ void conjugateGradient_OCR(Matrix *A_m, Matrix *x_m, Matrix *B_m, ocrGuid_t resu
 #ifdef DEBUG_MESSAGES
 	cout << "Init. Created Edt: CgEdt" << endl;
 #endif
-	
+
 	ocrAddDependence(A, myEdt, 0, DB_MODE_RO);
 	ocrAddDependence(B, myEdt, 1, DB_MODE_RO);
 	ocrAddDependence(x, myEdt, 2, DB_MODE_RO);
@@ -670,7 +695,7 @@ void conjugateGradient_OCR(Matrix *A_m, Matrix *x_m, Matrix *B_m, ocrGuid_t resu
 #ifdef DEBUG_MESSAGES
 	cout << "Init. Added dependencies: CgEdt" << endl;
 #endif
-	
+
 	ocrAddDependence(B, edtB, 0, DB_MODE_RO);
 	ocrAddDependence(Ax, edtB, 1, DB_MODE_RO);
 #ifdef DEBUG_MESSAGES
@@ -684,37 +709,58 @@ void conjugateGradient_OCR(Matrix *A_m, Matrix *x_m, Matrix *B_m, ocrGuid_t resu
 #endif
 }
 
+void readMatrixFromFile(const char* fileName, Matrix &A)
+{
+	ifstream f;
+	f.open(fileName);
+	double n;
+	for (int row = 0; row < MATRIX_N; row++) {
+		for (int column = 0; column < MATRIX_N; column++) {
+			f >> n;
+			A.setValue(row, column, n);
+		}
+	}
+	f.close();
+}
+
 extern "C" ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[])
 {
-	//Test values
-	Matrix A(2, 2);
-	A.setValue(0, 0, 4.0f);
-	A.setValue(0, 1, 1.0f);
-	A.setValue(1, 0, 1.0f);
-	A.setValue(1, 1, 3.0f);
-	Matrix x(2, 1);
-	x.setValue(0, 0, 2.0f);
-	x.setValue(1, 0, 1.0f);
-	Matrix B(2, 1);
-	B.setValue(0, 0, 1.0f);
-	B.setValue(1, 0, 2.0f);
+	Matrix A(MATRIX_N, MATRIX_N);
+	readMatrixFromFile("cg.mat", A);
+	Matrix x(MATRIX_N, 1);
+	Matrix B(MATRIX_N, 1);
+	for (int row = 0; row < MATRIX_N; row++) {
+		x.setValue(row, 0, 0.0f); //Initial guess of all zeroes
+		B.setValue(row, 0, fRand(-10.0f, 10.0f));
+	}
 
+	timeval cgTime;
+	tick(cgTime);
 	cout << "Testing Conjugate Gradient..." << endl;
 	Matrix *fishy = conjugateGradient(&A, &x, &B);
-	cout << "Solution:" << endl;
-	cout << fishy->getValue(0, 0) << endl;
-	cout << fishy->getValue(1, 0) << endl << endl;
 
+	cout << "Solution:" << endl;
+	for (int i = 0; i < MATRIX_N; i++)
+		cout << fishy->getValue(i, 0) << endl;
+
+	double cgTimeElapsed = tock(cgTime);
+
+	cout << "Time to test Conjugate Gradient: " << cgTimeElapsed << " ms" << endl << endl;
+
+	timeval ocrCgTime;
+	tick(ocrCgTime);
 	cout << "Testing Conjugate Gradient OCR..." << endl;
 	ocrGuid_t result;
 	ocrEventCreate(&result, OCR_EVENT_STICKY_T, true);
 	conjugateGradient_OCR(&A, &x, &B, result);
 
-	u64 nparamv[1];
+	u64 nparamv[3];
 	nparamv[0] = x.getRows();
+	nparamv[1] = ocrCgTime.tv_sec;
+	nparamv[2] = ocrCgTime.tv_usec;
 
 	ocrGuid_t printEdtTemplate;
-	ocrEdtTemplateCreate(&printEdtTemplate, printEdt, 1, 1);
+	ocrEdtTemplateCreate(&printEdtTemplate, printEdt, 3, 1);
 
 	ocrGuid_t printEdt;
 	ocrEdtCreate(&printEdt, printEdtTemplate, EDT_PARAM_DEF, nparamv, EDT_PARAM_DEF,
