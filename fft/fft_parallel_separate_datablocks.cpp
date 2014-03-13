@@ -266,7 +266,7 @@ extern "C" ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv
 	bool verify;
 	bool verbose;
 	bool printResults;
-	u64 serialBlockSize;
+	u64 serialBlockSize = SERIAL_BLOCK_SIZE_DEFAULT;
 	if(!parseOptions(argc,argv,&N,&verify,&iterations,&verbose,&printResults,&serialBlockSize)) {
 		printHelp(argv,true);
 		ocrShutdown();
