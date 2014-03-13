@@ -1,6 +1,6 @@
 // Parallel version of Cooley-Tukey FFT algorithm.
 // The problem is divided into smaller chunks of half size recursively,
-// until the base size SERIAL_BLOCK_SIZE is reached. These chunks are
+// until the base size serialBlockSize is reached. These chunks are
 // processed by EDTs, which write the result for their parents to finish processing.
 //
 // 
@@ -15,7 +15,7 @@
 #include "options.h"
 #include "verify.h"
 
-#define SERIAL_BLOCK_SIZE 1024
+#define SERIAL_BLOCK_SIZE_DEFAULT (1024*16)
 
 #ifndef __OCR__
 #define __OCR__
@@ -30,13 +30,14 @@ ocrGuid_t fftIterationEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[])
 	ocrGuid_t endSlaveTempGuid = paramv[2];
 	bool verbose = paramv[7];
 	bool printResults = paramv[8];
+	u64 serialBlockSize = paramv[9];
 	float *x_in = (float*)depv[0].ptr;
 	float *X_real = (float*)depv[1].ptr;
 	float *X_imag = (float*)depv[2].ptr;
 	u64 N = paramv[3];
 	int i;
 
-	u64 edtParamv[9] = { startTempGuid, endTempGuid, endSlaveTempGuid, N, 1 /* step size */, 0 /* offset */, 0 /* x_in_offset */, verbose, printResults };
+	u64 edtParamv[10] = { startTempGuid, endTempGuid, endSlaveTempGuid, N, 1 /* step size */, 0 /* offset */, 0 /* x_in_offset */, verbose, printResults, serialBlockSize };
 	ocrGuid_t dependencies[3] = { paramv[4], paramv[5], paramv[6] };
 
 	if(verbose) {
@@ -48,7 +49,7 @@ ocrGuid_t fftIterationEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[])
 	return NULL_GUID;
 }
 
-// First part of the Cooley-Tukey algorithm. The work is recursively split in half until N = SERIAL_BLOCK_SIZE.
+// First part of the Cooley-Tukey algorithm. The work is recursively split in half until N = serialBlockSize.
 ocrGuid_t fftStartEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
 	int i;
 	ocrGuid_t startGuid = paramv[0];
@@ -66,6 +67,7 @@ ocrGuid_t fftStartEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
 	u64 x_in_offset = paramv[6];
 	bool verbose = paramv[7];
 	bool printResults = paramv[8];
+	u64 serialBlockSize = paramv[9];
 	float *x_in = (float*)data_in;
 	float *X_real = (float*)(data_real+offset);
 	float *X_imag = (float*)(data_imag+offset);
@@ -74,7 +76,7 @@ ocrGuid_t fftStartEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
 	}
 	
 
-	if(N <= SERIAL_BLOCK_SIZE) {
+	if(N <= serialBlockSize) {
 		ditfft2(X_real, X_imag, x_in+x_in_offset, N, step);
 	} else {
 		// DFT even side
@@ -136,6 +138,7 @@ ocrGuid_t fftEndEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
 	u64 offset = paramv[5];
 	bool verbose = paramv[7];
 	bool printResults = paramv[8];
+	u64 serialBlockSize = paramv[9];
 	float *x_in = (float*)data_in+offset;
 	float *X_real = (float*)(data_real+offset);
 	float *X_imag = (float*)(data_imag+offset);
@@ -143,30 +146,27 @@ ocrGuid_t fftEndEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
 		PRINTF("Reached end phase for step %d\n",step);
 		PRINTF("paramc: %d\n",paramc);
 	}
-	ocrGuid_t *slaveGuids;
-	u64 *slaveParamv;
 
-	if(N/2 > SERIAL_BLOCK_SIZE) {
-		// TODO: malloc will leak memory
-		slaveGuids = (ocrGuid_t*)malloc(sizeof(ocrGuid_t) * (N/2)/SERIAL_BLOCK_SIZE);
-		slaveParamv = (u64*)malloc(sizeof(u64) * 5 * (N/2)/SERIAL_BLOCK_SIZE);
+	if(N/2 > serialBlockSize) {
+		ocrGuid_t slaveGuids[(N/2)/serialBlockSize];
+		u64 slaveParamv[5 * (N/2)/serialBlockSize];
 
 		if(verbose) {
-			PRINTF("Creating %d slaves for N=%d\n",(N/2)/SERIAL_BLOCK_SIZE,N);
+			PRINTF("Creating %d slaves for N=%d\n",(N/2)/serialBlockSize,N);
 		}
 		
-		for(i=0;i<(N/2)/SERIAL_BLOCK_SIZE;i++) {
+		for(i=0;i<(N/2)/serialBlockSize;i++) {
 			slaveParamv[i*5] = N;
 			slaveParamv[i*5+1] = step;
 			slaveParamv[i*5+2] = offset;
-			slaveParamv[i*5+3] = i*SERIAL_BLOCK_SIZE;
-			slaveParamv[i*5+4] = (i+1)*SERIAL_BLOCK_SIZE;
+			slaveParamv[i*5+3] = i*serialBlockSize;
+			slaveParamv[i*5+4] = (i+1)*serialBlockSize;
 
 			ocrEdtCreate(slaveGuids+i, endSlaveGuid, EDT_PARAM_DEF, slaveParamv+i*5, EDT_PARAM_DEF, dataGuids, EDT_PROP_NONE, NULL_GUID, NULL);
 		}
 	} else {
-		slaveGuids = (ocrGuid_t*)malloc(sizeof(ocrGuid_t));
-		slaveParamv = (u64*)malloc(sizeof(u64*) * 5);
+		ocrGuid_t slaveGuids[1];
+		u64 slaveParamv[5];
 		
 		slaveParamv[0] = N;
 		slaveParamv[1] = step;
@@ -266,8 +266,9 @@ extern "C" ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv
 	bool verify;
 	bool verbose;
 	bool printResults;
-	if(!parseOptions(argc,argv,&N,&verify,&iterations,&verbose,&printResults)) {
-		printHelp(argv);
+	u64 serialBlockSize;
+	if(!parseOptions(argc,argv,&N,&verify,&iterations,&verbose,&printResults,&serialBlockSize)) {
+		printHelp(argv,true);
 		ocrShutdown();
 		return NULL_GUID;
 	}
@@ -281,9 +282,9 @@ extern "C" ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv
 	}
 
 	ocrGuid_t startTempGuid,endTempGuid,printTempGuid,endSlaveTempGuid,iterationTempGuid;
-	ocrEdtTemplateCreate(&iterationTempGuid, &fftIterationEdt, 9, 4);
-	ocrEdtTemplateCreate(&startTempGuid, &fftStartEdt, 9, 3);
-	ocrEdtTemplateCreate(&endTempGuid, &fftEndEdt, 9, 5);
+	ocrEdtTemplateCreate(&iterationTempGuid, &fftIterationEdt, 10, 4);
+	ocrEdtTemplateCreate(&startTempGuid, &fftStartEdt, 10, 3);
+	ocrEdtTemplateCreate(&endTempGuid, &fftEndEdt, 10, 5);
 	ocrEdtTemplateCreate(&endSlaveTempGuid, &fftEndSlaveEdt, 5, 3);
 	ocrEdtTemplateCreate(&printTempGuid, &finalPrintEdt, 9, 4);
 	
@@ -310,7 +311,7 @@ extern "C" ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv
 	//x_in[5] = 1;
 	//x_in[7] = -1;
 
-	u64 edtParamv[9] = { startTempGuid, endTempGuid, endSlaveTempGuid, N, dataInGuid, dataRealGuid, dataImagGuid, verbose, printResults };
+	u64 edtParamv[10] = { startTempGuid, endTempGuid, endSlaveTempGuid, N, dataInGuid, dataRealGuid, dataImagGuid, verbose, printResults, serialBlockSize };
 	
 	// Create an EDT out of the EDT template
 	ocrGuid_t edtGuid, edtPrevGuid, printEdtGuid, edtEventGuid, edtPrevEventGuid;

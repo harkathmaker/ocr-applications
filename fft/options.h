@@ -6,19 +6,24 @@
 #include "ocr.h"
 #endif
 
-void printHelp(char *argv[]) {
+void printHelp(char *argv[], bool supportSerialBlocks) {
 	PRINTF("\n");
-	PRINTF("%s -n N  [--check|-c] [-i iterations] [--verbose|-v] [--print-result|-p]\n",argv[0]);
-	PRINTF("    -n N               Computes a matrix with 2^N elements.\n");
-	PRINTF("    --check|-c         Checks the computed results against serial baseline.\n");
-	PRINTF("    -i iterations      Runs the given number of iterations (default 1).\n");
-	PRINTF("    -v verbose         Print out more information.\n");
-	PRINTF("    --print-result|-p  Print input and result of computation.\n");
+	if(supportSerialBlocks) {
+		PRINTF("%s -n N [--serial-block|-s SIZE] [--check|-c] [-i iterations] [--verbose|-v] [--print-result|-p]\n",argv[0]);
+		PRINTF("    --serial-block|-s SIZE  Divide the workload into minimum size chunks of 2^SIZE elements. Default=16384.\n");
+	} else {
+		PRINTF("%s -n N  [--check|-c] [-i iterations] [--verbose|-v] [--print-result|-p]\n",argv[0]);
+	}
+	PRINTF("    -n N                    Computes a matrix with 2^N elements.\n");
+	PRINTF("    --check|-c              Checks the computed results against serial baseline.\n");
+	PRINTF("    -i iterations           Runs the given number of iterations (default 1).\n");
+	PRINTF("    -v verbose              Print out more information.\n");
+	PRINTF("    --print-result|-p       Print input and result of computation.\n");
 }
 
 // Parses the command line options, returning true if a legal configuration
 // was provided.
-bool parseOptions(int argc, char *argv[], u64 *N, bool *verify, u64 *iterations, bool *verbose, bool *printResults) {
+bool parseOptions(int argc, char *argv[], u64 *N, bool *verify, u64 *iterations, bool *verbose, bool *printResults, u64 *serialBlockSize) {
 	opterr = 0;
 	char c;
 	char *buffer = NULL;
@@ -37,10 +42,11 @@ bool parseOptions(int argc, char *argv[], u64 *N, bool *verify, u64 *iterations,
 			{"verbose", no_argument, NULL, 'v'},
 			{"print-result", no_argument, NULL, 'p'},
 			{"check", no_argument, NULL, 'c'},
+			{"serial-block", no_argument, NULL, 's'},
 			{0,0,0,0}
 		};
 
-		c = getopt_long(argc, argv, "ci:n:vp", long_options, &option_index);
+		c = getopt_long(argc, argv, "ci:n:s:vp", long_options, &option_index);
 		if(c == -1)
 			break;
 
@@ -60,8 +66,11 @@ bool parseOptions(int argc, char *argv[], u64 *N, bool *verify, u64 *iterations,
 			case 'p':
 				*printResults = true;
 				break;
+			case 's':
+				*serialBlockSize = pow(2,atoi(optarg));
+				break;
 			case '?':
-				if(optopt == 'n' || optopt == 'i') {
+				if(optopt == 'n' || optopt == 'i' || optopt == 's') {
 					PRINTF("Option -%c requires an argument.\n",optopt);
 				} else {
 					PRINTF("Unknown option -%c.\n",optopt);

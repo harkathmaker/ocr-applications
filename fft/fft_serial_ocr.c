@@ -17,9 +17,9 @@ ocrGuid_t fftEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
 	// Use macros from compat.h for fsim/ocr compatibility
 	int N = paramv[0];
 	int iterations = paramv[1];
-	float *x_in = (float*)malloc(sizeof(float) * N);
-	float *X_real = (float*)malloc(sizeof(float) * N);
-	float *X_imag = (float*)malloc(sizeof(float) * N);
+	float x_in[N];
+	float X_real[N];
+	float X_imag[N];
 	int i,j;
 	
 	for(i=0;i<N;i++) {

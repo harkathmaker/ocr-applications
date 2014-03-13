@@ -165,8 +165,8 @@ extern "C" ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv
 	bool verify;
 	bool verbose;
 	bool printResults;
-	if(!parseOptions(argc,argv,&N,&verify,&iterations,&verbose,&printResults)) {
-		printHelp(argv);
+	if(!parseOptions(argc,argv,&N,&verify,&iterations,&verbose,&printResults,NULL)) {
+		printHelp(argv,false);
 		ocrShutdown();
 		return NULL_GUID;
 	}
