@@ -1,11 +1,11 @@
 // OCR implementation of the Cooley-Tukey algorithm. Same as
 // fft_dependence_ocr.c, but recursive creation of StartEDTs stops once
-// the matrix size reaches SERIAL_BLOCK_SIZE. For these small matrices ditfft2
+// the matrix size reaches serialBlockSize. For these small matrices ditfft2
 // is called to compute the answer serially. This is meant to minimize the overhead
 // of creating EDTs while still maximizing parallelism.
 //
 // EndEDTs are also changed to divide their work to a number of slave EDTs, such that
-// each slave handles SERIAL_BLOCK_SIZE elements.
+// each slave handles serialBlockSize elements.
 //
 
 #define _USE_MATH_DEFINES
@@ -22,7 +22,7 @@
 #include "ocr.h"
 #endif
 
-#define SERIAL_BLOCK_SIZE (1024*16)
+#define SERIAL_BLOCK_SIZE_DEFAULT (1024*16)
 
 ocrGuid_t fftStartEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
 	int i;
@@ -40,6 +40,7 @@ ocrGuid_t fftStartEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
 	u64 x_in_offset = paramv[6];
 	bool verbose = paramv[7];
 	bool printResults = paramv[8];
+	u64 serialBlockSize = paramv[9];
 	float *x_in = (float*)data;
 	float *X_real = (float*)(data+offset + N*step);
 	float *X_imag = (float*)(data+offset + 2*N*step);
@@ -48,7 +49,7 @@ ocrGuid_t fftStartEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
 	}
 	
 
-	if(N <= SERIAL_BLOCK_SIZE) {
+	if(N <= serialBlockSize) {
 		ditfft2(X_real, X_imag, x_in+x_in_offset, N, step);
 	} else {
 		// DFT even side
@@ -92,36 +93,35 @@ ocrGuid_t fftEndEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
 	u64 offset = paramv[5];
 	bool verbose = paramv[7];
 	bool printResults = paramv[8];
+	u64 serialBlockSize = paramv[9];
 	float *x_in = (float*)data+offset;
 	float *X_real = (float*)(data+offset + N*step);
 	float *X_imag = (float*)(data+offset + 2*N*step);
 	if(verbose) {
 		PRINTF("Reached end phase for step %d\n",step);
 	}
-	ocrGuid_t *slaveGuids;
 	u64 *slaveParamv;
 
-	if(N/2 > SERIAL_BLOCK_SIZE) {
-		// TODO: malloc will leak memory
-		slaveGuids = (ocrGuid_t*)malloc(sizeof(ocrGuid_t) * (N/2)/SERIAL_BLOCK_SIZE);
-		slaveParamv = (u64*)malloc(sizeof(u64) * 5 * (N/2)/SERIAL_BLOCK_SIZE);
+	if(N/2 > serialBlockSize) {
+		ocrGuid_t slaveGuids[(N/2)/serialBlockSize];
+		u64 slaveParamv[5 * (N/2)/serialBlockSize];
 		
 		if(verbose) {
-			PRINTF("Creating %d slaves for N=%d\n",(N/2)/SERIAL_BLOCK_SIZE,N);
+			PRINTF("Creating %d slaves for N=%d\n",(N/2)/serialBlockSize,N);
 		}
 		
-		for(i=0;i<(N/2)/SERIAL_BLOCK_SIZE;i++) {
+		for(i=0;i<(N/2)/serialBlockSize;i++) {
 			slaveParamv[i*5] = N;
 			slaveParamv[i*5+1] = step;
 			slaveParamv[i*5+2] = offset;
-			slaveParamv[i*5+3] = i*SERIAL_BLOCK_SIZE;
-			slaveParamv[i*5+4] = (i+1)*SERIAL_BLOCK_SIZE;
+			slaveParamv[i*5+3] = i*serialBlockSize;
+			slaveParamv[i*5+4] = (i+1)*serialBlockSize;
 
 			ocrEdtCreate(slaveGuids+i, endSlaveGuid, EDT_PARAM_DEF, slaveParamv+i*5, EDT_PARAM_DEF, &dataGuid, EDT_PROP_NONE, NULL_GUID, NULL);
 		}
 	} else {
-		slaveGuids = (ocrGuid_t*)malloc(sizeof(ocrGuid_t));
-		slaveParamv = (u64*)malloc(sizeof(u64*) * 5);
+		ocrGuid_t slaveGuids[1];
+		u64 slaveParamv[5];
 		
 		slaveParamv[0] = N;
 		slaveParamv[1] = step;
@@ -223,8 +223,9 @@ extern "C" ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv
 	bool verify;
 	bool verbose;
 	bool printResults;
-	if(!parseOptions(argc,argv,&N,&verify,&iterations,&verbose,&printResults)) {
-		printHelp(argv);
+	u64 serialBlockSize;
+	if(!parseOptions(argc,argv,&N,&verify,&iterations,&verbose,&printResults,&serialBlockSize)) {
+		printHelp(argv,true);
 		ocrShutdown();
 		return NULL_GUID;
 	}
@@ -237,8 +238,8 @@ extern "C" ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv
 
 	// Create an EDT template for 'appEdt', no argument, no dependence
 	ocrGuid_t startTempGuid,endTempGuid,printTempGuid,endSlaveTempGuid;
-	ocrEdtTemplateCreate(&startTempGuid, &fftStartEdt, 9, 1);
-	ocrEdtTemplateCreate(&endTempGuid, &fftEndEdt, 9, 3);
+	ocrEdtTemplateCreate(&startTempGuid, &fftStartEdt, 10, 1);
+	ocrEdtTemplateCreate(&endTempGuid, &fftEndEdt, 10, 3);
 	ocrEdtTemplateCreate(&endSlaveTempGuid, &fftEndSlaveEdt, 5, 1);
 	ocrEdtTemplateCreate(&printTempGuid, &finalPrintEdt, 9, 2);
 	
