@@ -1,10 +1,13 @@
-#define __OCR__
-#include "ocr.h"
-#include <getopt.h>
+#include "options.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/time.h> 
 #include <unistd.h>
+
+#ifndef __OCR__
+	#define __OCR__
+	#include "ocr.h"
+#endif
 
 #ifndef STREAM_TYPE
 #	define STREAM_TYPE double
@@ -26,10 +29,7 @@ double mysecond() {
 	return ((double) tp.tv_sec + (double) tp.tv_usec * 1.e-6 );
 }
 
-
-// scalar
-// db_size
-//	u64 nparamv[2=5] = {1, db_size, scalar, iterations, iterTemplateGuid};
+//u64 nparamv[2=5] = {1, db_size, scalar, iterations, iterTemplateGuid};
 ocrGuid_t iterEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 	u64 i;
 	u64 db_size = paramv[1];
@@ -127,66 +127,20 @@ ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
 	for(i = 0; i < argc; i++)
 		argv[i] = getArgv(depv[0].ptr,i);
 
-	u64 db_size = 100;
-	STREAM_TYPE scalar = 3.0;
-	u64 iterations = 1;
+	u64 db_size;
 	char efile[100];
-	static int verify = 0;
-	static int verbose = 0;
+	u64 iterations;
+	STREAM_TYPE scalar;
+	int verify;
+	int verbose;
 
-	while (1) {
-		int option_index = 0;
-		static struct option long_options[] = {
-			{"export_to",   required_argument,  0,              'e'},
-			{"help",        no_argument,        0,              'h'},
-			{"iterations",  required_argument,  0,              'i'},
-			{"db_size",     required_argument,  0,              'n'},
-			{"scalar",      required_argument,  0,              's'},
-			{"verify",      no_argument,        &verify,   1},
-			{"verbose",     no_argument,        &verbose,  1},
-			{0, 0, 0, 0}
-		};
-
-		c = getopt_long(argc, argv, "e:hi:n:rs:v", long_options, &option_index);
-		if (c == -1)
-			break;
-		switch (c) {
-			case 'e':
-				sscanf(optarg, "%s", &efile);
-				break;
-			case 'h':
-				printf("serial_stream [-e file_name] [-h] [-i num_iter] [-n db_size] "
-					   "[-r] [-s scalar_value] [-v]\n"
-					   "List of Options\n" 
-					   "-e = exports results to csv file\n"
-					   "-h = list of options\n"
-					   "-i = number of iterations (1 by default)\n"
-					   "-n = size of data blocks a, b, c (10 million by default)\n"
-					   "-r = verify results\n"
-					   "-s = value of scalar (3.0 by default)\n"
-					   "-v = verbose output\n");
-					   ocrShutdown();
-					   return NULL_GUID;
-			case 'i':
-				sscanf(optarg, "%d", &iterations);
-				break;
-			case 'n':
-				sscanf(optarg, "%llu", &db_size);
-				break;
-			case 'r':
-				verify = 1;
-				break;
-			case 's':
-				sscanf(optarg, "%llu", &scalar);
-				break;
-			case 'v':
-				verbose = 1;
-				break;
-			case '?':
-				PRINTF("Unknown option -%c.\n",optopt);
-		}
+	// Parse getopt commands, shutdown and exit if help is selected
+	if (parseOptions(argc, argv,  &db_size, efile, &iterations, &scalar, &verify, &verbose)) {
+		ocrShutdown();
+		return NULL_GUID;
 	}
 
+	// Initialize parameters, variables, and templates
 	u64 nparamc = 5, rparamc = 5;
 	STREAM_TYPE * dataArray;
 	ocrGuid_t dataGuid, iterTemplateGuid, iterGuid, iterDone, resultsTemplateGuid, resultsGuid;
@@ -196,7 +150,7 @@ ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
 	u64 nparamv[5] = {1, db_size, scalar, iterations, iterTemplateGuid};
 	u64 rparamv[5] = {verify, verbose, db_size, iterations, scalar};
 
-	// Formatting datablock
+	// Format datablock
 	DBCREATE(&dataGuid, (void **) &dataArray, sizeof(STREAM_TYPE) * (3 * db_size + iterations), 0, NULL_GUID, NO_ALLOC);
 	for (i = 0; i < db_size; i++){
 		dataArray[i] = 1.0;
