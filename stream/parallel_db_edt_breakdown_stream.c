@@ -28,6 +28,15 @@
 #	define SCALAR	3.0
 #endif
 
+/*
+	NOTES: 
+	NSPLIT datablocks are used with ranges of indexes corresponding to the following:
+			  a --> [0 to (CHUNK - 1)]
+			  b --> [CHUNK to (2 * CHUNK - 1)]
+			  c --> [2 * CHUNK to (3 * CHUNK - 1)]
+		timings --> [3 * CHUNK to (3 * CHUNK + NTIMES - 1)]
+*/
+
 double mysecond() {
 	struct timeval tp;
 	struct timezone tzp;
@@ -119,9 +128,6 @@ ocrGuid_t pipeExecEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 	ocrGuid_t pipelineTemplateGuid = paramv[3];
 	ocrGuid_t pipelineGuid;
 
-	//                                    a                        b                                 c                          partial timings
-	// Each element in dataGuid = [ (0, ... , CHUNK - 1), (CHUNK, ... , 2 * CHUNK - 1), (2 * CHUNK, ... ,3 * CHUNK - 1), (3 * CHUNK , ... , 3 * CHUNK + NTIMES - 1) ]
-	// Size = 3 * CHUNK + NTIMES
 	// Spawn pipeline children operating on CHUNK amounts of data
 	for (i = 0; i < NSPLIT; i++) {
 		ocrEdtCreate(&pipelineGuid, pipelineTemplateGuid, EDT_PARAM_DEF, paramv, EDT_PARAM_DEF, NULL_GUID,

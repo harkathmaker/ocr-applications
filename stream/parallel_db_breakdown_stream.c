@@ -47,7 +47,6 @@ double mysecond() {
 ocrGuid_t pipelineEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 	u64 i;
 	STREAM_TYPE * data = (STREAM_TYPE *) depv[0].ptr;
-	STREAM_TYPE scalar = 3.0;
 
 	data[3 * CHUNK + paramv[0] - 1] = mysecond();
 
@@ -56,7 +55,7 @@ ocrGuid_t pipelineEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 	// PRINTF("FINISHED COPY\n");
 
 	for (i = 0; i < CHUNK; i++)
-		data[CHUNK + i] = scalar * data[2 * CHUNK + i];
+		data[CHUNK + i] = SCALAR * data[2 * CHUNK + i];
 	// PRINTF("FINISHED SCALE\n");
 
 	for (i = 0; i < CHUNK; i++)
@@ -64,7 +63,7 @@ ocrGuid_t pipelineEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 	// PRINTF("FINISHED ADD\n");
 
 	for (i = 0; i < CHUNK; i++)
-		data[i] = data[CHUNK + i] + scalar * data[2 * CHUNK + i];
+		data[i] = data[CHUNK + i] + SCALAR * data[2 * CHUNK + i];
 	// PRINTF("FINISHED TRIAD\n");
 
 	data[3 * CHUNK + paramv[0] - 1] = mysecond() - data[3 * CHUNK + paramv[0] - 1];
@@ -78,9 +77,6 @@ ocrGuid_t pipeExecEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 	ocrGuid_t pipelineTemplateGuid = paramv[3];
 	ocrGuid_t pipelineGuid;
 
-	//                                    a                        b                                 c                          partial timings
-	// Each element in dataGuid = [ (0, ... , CHUNK - 1), (CHUNK, ... , 2 * CHUNK - 1), (2 * CHUNK, ... ,3 * CHUNK - 1), (3 * CHUNK , ... , 3 * CHUNK + NTIMES - 1) ]
-	// Size = 3 * CHUNK + NTIMES
 	// Spawn pipeline children operating on CHUNK amounts of data
 	for (i = 0; i < NSPLIT; i++) {
 		ocrEdtCreate(&pipelineGuid, pipelineTemplateGuid, EDT_PARAM_DEF, paramv, EDT_PARAM_DEF, NULL_GUID,
@@ -121,7 +117,7 @@ ocrGuid_t iterEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 ocrGuid_t resultsEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 	u64 i, j;
 	STREAM_TYPE a, b, c, timingsum[NTIMES];
-	STREAM_TYPE ai, bi, ci, scalar;
+	STREAM_TYPE ai, bi, ci;
 	STREAM_TYPE totalsum = 0.0;
 	a = b = c = 0;
 
@@ -131,12 +127,11 @@ ocrGuid_t resultsEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 	ci = 0.0;
 
 	// Execute timing loop
-	scalar = 3.0;
 	for (i = 0; i < NTIMES; i++) {
 		ci = ai;
-		bi = scalar * ci;
+		bi = SCALAR * ci;
 		ci = ai + bi;
-		ai = bi + scalar * ci;
+		ai = bi + SCALAR * ci;
 	}
 
 	for (i = 0; i < NSPLIT; i++) {
@@ -171,7 +166,7 @@ ocrGuid_t resultsEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 ocrGuid_t mainEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 	u64 i, j, nparamc = 4;
 	STREAM_TYPE * chunkArray;
-	ocrGuid_t chunkGuid, dataGuids[NSPLIT] = {0};
+	ocrGuid_t dataGuids[NSPLIT] = {0};
 	ocrGuid_t iterTemplateGuid, iterGuid, iterDone, resultsTemplateGuid, resultsGuid, pipeExecTemplateGuid, 
 			  nextIterTemplateGuid, pipelineTemplateGuid;
 	ocrEdtTemplateCreate(&iterTemplateGuid, &iterEdt, nparamc, NSPLIT);
@@ -184,6 +179,7 @@ ocrGuid_t mainEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 
 	// 3 * STREAM_ARRAY_SIZE + NTIMES = (3 * CHUNK + NTIMES)* NSPLIT
 	for (i = 0; i < NSPLIT; i++) {
+		ocrGuid_t chunkGuid;
 		DBCREATE(&chunkGuid,(void **) &chunkArray, sizeof(STREAM_TYPE)*(3 * CHUNK + NTIMES), 0, NULL_GUID, NO_ALLOC);
 		for (j = 0; j < CHUNK; j++) {
 			chunkArray[j] = 1.0;
