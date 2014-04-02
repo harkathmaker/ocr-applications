@@ -45,17 +45,17 @@ parallel_edt_breakdown_stream.c:
 parallel_db_breakdown_stream.c:
 
 parallel_stream.c:
-	Simple parallel implementation of stream in OCR.
-	Datablock are divided implicitly via indexing set by "split"
-	Each instance of pipelineEDT operates on db_size / split number of elements
-	All vector operations are run in a single edt (pipelineEDT) similar to serial_stream.c
-	with the difference being that there will be "split" instances of pipelineEDT each
-	operating on db_size / split.
+	-- Simple parallel implementation of stream in OCR.
+	-- Datablock are divided implicitly via indexing set by "split"
+	-- Each instance of pipelineEDT operates on db_size / split number of elements
+	-- All vector operations are run in a single edt (pipelineEDT) similar to serial_stream.c
+	   with the difference being that there will be "split" instances of pipelineEDT each
+	   operating on db_size / split.
 
 serial_stream.c:
-	Serial implementation of stream in OCR.
-	Vector operations are run in the following order: 
-	COPY --> SCALE --> ADD --> TRIAD
+	-- Serial implementation of stream in OCR.
+	-- Vector operations are run in the following order: 
+	   COPY --> SCALE --> ADD --> TRIAD
 
 ***********
 ** Notes **

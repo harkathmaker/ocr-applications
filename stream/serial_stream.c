@@ -5,8 +5,8 @@
 #include <unistd.h>
 
 #ifndef __OCR__
-	#define __OCR__
-	#include "ocr.h"
+#	define __OCR__
+#	include "ocr.h"
 #endif
 
 #ifndef STREAM_TYPE
@@ -29,12 +29,13 @@ double mysecond() {
 	return ((double) tp.tv_sec + (double) tp.tv_usec * 1.e-6 );
 }
 
-//u64 nparamv[2=5] = {1, db_size, scalar, iterations, iterTemplateGuid};
+//                   0  1        2           3       4
+// u64 nparamv[5] = {1, db_size, iterations, scalar, iterTemplateGuid};
 ocrGuid_t iterEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 	u64 i;
 	u64 db_size = paramv[1];
-	u64 scalar = paramv[2];
-	u64 iterations = paramv[3];
+	u64 iterations = paramv[2];
+	STREAM_TYPE scalar = paramv[3];
 	ocrGuid_t iterGuid;
 	ocrGuid_t iterTemplateGuid = paramv[4];
 	ocrGuid_t dataGuid = (ocrGuid_t) depv[0].guid;
@@ -66,17 +67,19 @@ ocrGuid_t iterEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 		// Create next iterator EDT
 		ocrEdtCreate(&iterGuid, iterTemplateGuid, EDT_PARAM_DEF, paramv, EDT_PARAM_DEF, NULL_GUID,
 					 EDT_PROP_FINISH, NULL_GUID, NULL);
-		ocrAddDependence(dataGuid, iterGuid, 0, DB_MODE_EW);
+		ocrAddDependence(dataGuid, iterGuid, 0, DB_MODE_ITW);
 	}
 	return NULL_GUID;
 }
 
+//                   0        1           2       3       4
+// u64 rparamv[5] = {db_size, iterations, verify, scalar, verbose};
 ocrGuid_t resultsEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 	u64 i;
-	u64 verify = paramv[0];
-	u64 verbose = paramv[1];
-	u64 db_size = paramv[2];
-	u64 iterations = paramv[3];
+	u64 db_size = paramv[0];
+	u64 iterations = paramv[1];
+	u64 verify = paramv[2];
+	u64 verbose = paramv[4];
 	STREAM_TYPE * data = (STREAM_TYPE *) depv[0].ptr;
 	STREAM_TYPE timing;
 	STREAM_TYPE timingsum = 0.0;
@@ -94,7 +97,7 @@ ocrGuid_t resultsEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 		STREAM_TYPE b = data[db_size];
 		STREAM_TYPE c = data[2 * db_size];
 		STREAM_TYPE ai, bi, ci;
-		STREAM_TYPE scalar = paramv[4];
+		STREAM_TYPE scalar = (STREAM_TYPE) paramv[3];
 
 		// Reproduce initializations
 		ai = 1.0;
@@ -123,19 +126,20 @@ ocrGuid_t resultsEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 
 ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
 	u64 c, i, argc = getArgc(depv[0].ptr);
-	char *argv[argc];
+	char * argv[argc];
 	for(i = 0; i < argc; i++)
-		argv[i] = getArgv(depv[0].ptr,i);
+		argv[i] = getArgv(depv[0].ptr, i);
 
+	// Getopt arguments
 	u64 db_size;
 	char efile[100];
 	u64 iterations;
-	STREAM_TYPE scalar;
 	int verify;
+	STREAM_TYPE scalar;
 	int verbose;
 
 	// Parse getopt commands, shutdown and exit if help is selected
-	if (parseOptions(argc, argv,  &db_size, efile, &iterations, &scalar, &verify, &verbose)) {
+	if (parseOptions(argc, argv,  &db_size, efile, &iterations, &verify, &scalar, &verbose)) {
 		ocrShutdown();
 		return NULL_GUID;
 	}
@@ -147,8 +151,8 @@ ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
 	ocrEdtTemplateCreate(&iterTemplateGuid, &iterEdt, nparamc, 1);
 	ocrEdtTemplateCreate(&resultsTemplateGuid, &resultsEdt, rparamc, 2);
 
-	u64 nparamv[5] = {1, db_size, scalar, iterations, iterTemplateGuid};
-	u64 rparamv[5] = {verify, verbose, db_size, iterations, scalar};
+	u64 nparamv[5] = {1, db_size, iterations, scalar, iterTemplateGuid};
+	u64 rparamv[5] = {db_size, iterations, verify, scalar, verbose};
 
 	// Format datablock
 	DBCREATE(&dataGuid, (void **) &dataArray, sizeof(STREAM_TYPE) * (3 * db_size + iterations), 0, NULL_GUID, NO_ALLOC);
@@ -169,7 +173,7 @@ ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
 	// Dependencies for iterator and results
 	ocrAddDependence(dataGuid, resultsGuid, 0, DB_MODE_RO);
 	ocrAddDependence(iterDone, resultsGuid, 1, DB_MODE_RO);
-	ocrAddDependence(dataGuid, iterGuid, 0, DB_MODE_EW);
+	ocrAddDependence(dataGuid, iterGuid, 0, DB_MODE_ITW);
 	// PRINTF("FINISHED MAIN\n");
 	return NULL_GUID;
 }

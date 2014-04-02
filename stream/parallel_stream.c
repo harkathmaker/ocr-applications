@@ -86,10 +86,10 @@ ocrGuid_t pipeExecEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 
 // u64 nparamv[6] = {1, db_size, iterations, split, chunk, scalar, pipeExecTemplateGuid, nextIterTemplateGuid, pipelineTemplateGuid};
 ocrGuid_t iterEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
-	ocrGuid_t dataGuid = (ocrGuid_t) depv[0].guid;
 	u64 iterations = paramv[2];
 	ocrGuid_t pipeExecTemplateGuid = paramv[6];
 	ocrGuid_t nextIterTemplateGuid = paramv[7];
+	ocrGuid_t dataGuid = (ocrGuid_t) depv[0].guid;
 	ocrGuid_t pipeExecGuid, pipeExecDone, nextIterGuid;
 
 	ocrEdtCreate(&pipeExecGuid, pipeExecTemplateGuid, EDT_PARAM_DEF, paramv, EDT_PARAM_DEF, NULL_GUID,
