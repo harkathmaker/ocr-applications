@@ -28,6 +28,22 @@ double mysecond() {
 	return ((double) tp.tv_sec + (double) tp.tv_usec * 1.e-6 );
 }
 
+void export_csv(u64 iterations, STREAM_TYPE * trials, STREAM_TYPE avg) {
+	FILE * f = fopen("./results/parallel.csv", "w");
+	if (f == NULL) {
+		PRINTF("Error creating export file.");
+		exit(1);
+	}
+
+	u64 i;
+	for (i = 0; i < iterations; i++) 
+		fprintf(f, "%f, ", trials[i]);
+	fprintf(f, "%f\n", avg);
+
+	fclose(f);
+	return;
+}
+
 ocrGuid_t pipelineEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 	u64 i;
 	u64 db_size = paramv[1];
@@ -110,17 +126,18 @@ ocrGuid_t iterEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 	return NULL_GUID;
 }
 
-//                   0        1           2      3      4       5       6
-// u64 rparamv[7] = {db_size, iterations, split, chunk, verify, scalar, verbose};
+//                   0        1       2           3      4       5       6
+// u64 rparamv[8] = {db_size, export, iterations, split, verify, scalar, verbose};
 ocrGuid_t resultsEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 	u64 i, j;
 	u64 db_size = paramv[0];
-	u64 iterations = paramv[1];
-	u64 split = paramv[2];
+	int export = (int) paramv[1];
+	u64 iterations = paramv[2];
+	u64 split = paramv[3];
 	int verify = (int) paramv[4];
 	int verbose = (int) paramv[6];
 	STREAM_TYPE * data = (STREAM_TYPE *) depv[0].ptr;
-	STREAM_TYPE totalsum, timingsum[iterations];
+	STREAM_TYPE totalsum, timingsum[iterations], avg;
 
 	for (i = 0; i < split; i++)
 		for (j = 0; j < iterations; j++)
@@ -128,11 +145,17 @@ ocrGuid_t resultsEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 
 	PRINTF("Timing Results:\n");
 	for (i = 0; i < iterations; i++) {
-		PRINTF("TRIAL %d: %f s\n", i + 1, timingsum[i]);
+		if (verbose)
+			PRINTF("TRIAL %d: %f s\n", i + 1, timingsum[i]);
 		totalsum += timingsum[i];
 	}
-	PRINTF("AVERAGE Time Per chunk: %f s\n", totalsum / iterations / split);
-	PRINTF("AVERAGE Time Per Trial: %f s\n", totalsum / iterations);
+	avg = totalsum / iterations;
+	if (verbose)
+		PRINTF("AVERAGE Time Per chunk: %f s\n", avg / split);
+	PRINTF("AVERAGE Time Per Trial: %f s\n", avg);
+
+	if (export)
+		export_csv(iterations, timingsum, avg);
 
 	if (verify) {
 		STREAM_TYPE a = 0, ai, b = 0, bi, c = 0, ci;
@@ -181,7 +204,7 @@ ocrGuid_t mainEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 
 	// Getopt arguments
 	u64 db_size;
-	char efile[100];
+	int export;
 	u64 iterations;
 	u64 split;
 	u64 chunk;
@@ -190,7 +213,7 @@ ocrGuid_t mainEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 	int verbose;
 
 	// Parse getopt commands, shutdown and exit if help is selected
-	if (parseParallelOptions(argc, argv,  &db_size, efile, &iterations, &split, &chunk, &verify, &scalar, &verbose)) {
+	if (parseParallelOptions(argc, argv,  &db_size, &export, &iterations, &split, &chunk, &verify, &scalar, &verbose)) {
 		ocrShutdown();
 		return NULL_GUID;
 	}
@@ -206,7 +229,7 @@ ocrGuid_t mainEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 	ocrEdtTemplateCreate(&pipelineTemplateGuid, &pipelineEdt, nparamc + pparamc, 1);
 
 	u64 nparamv[9] = {1, db_size, iterations, split, chunk, scalar, pipeExecTemplateGuid, nextIterTemplateGuid, pipelineTemplateGuid};
-	u64 rparamv[7] = {db_size, iterations, split, chunk, verify, scalar, verbose};
+	u64 rparamv[7] = {db_size, export, iterations, split, verify, scalar, verbose};
 
 	// Formatting datablock
 	DBCREATE(&dataGuid,(void **) &dataArray, sizeof(STREAM_TYPE) * (3 * db_size + iterations), 0, NULL_GUID, NO_ALLOC);
