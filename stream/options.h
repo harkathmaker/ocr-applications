@@ -12,7 +12,7 @@
 
 void printHelp() {
 	PRINTF( "Usage:\n"
-			"serial_stream [-d db_size] [-e file_name] [-h] [-i num_iter]\n"
+			"serial_stream [-d db_size] [-e] [-h] [-i num_iter]\n"
 			"              [-r] [-s scalar_value] [-v]\n\n"
 			"List of Options:\n" 
 			"  -d|--db_size     = Size of data blocks a, b, c (1 million by default).\n"
@@ -27,21 +27,21 @@ void printHelp() {
 	return;
 }
 
-int parseOptions(int argc, char ** argv, u64 * db_size, char * efile, u64 * iterations, int * verify, STREAM_TYPE * scalar, int * verbose) {
+int parseOptions(int argc, char ** argv, u64 * db_size, int * efile, u64 * iterations, int * verify, STREAM_TYPE * scalar, int * verbose) {
 	char c;
 	int help = 0;
-	efile = NULL;
-	*iterations = 1;
 	*db_size = 1000000;
-	*scalar = 3.0;
+	*efile = 0;
+	*iterations = 1;
 	*verify = 0;
+	*scalar = 3.0;
 	*verbose = 0;
 
 	while (1) {
 		int option_index = 0;
 		static struct option long_options[] = {
 			{"db_size",     required_argument,  0,              'd'},
-			{"export_to",   required_argument,  0,              'e'},
+			{"export",      no_argument,        0,              'e'},
 			{"help",        no_argument,        0,              'h'},
 			{"iterations",  required_argument,  0,              'i'},
 			{"verify",      no_argument,        0,              'r'},
@@ -50,7 +50,7 @@ int parseOptions(int argc, char ** argv, u64 * db_size, char * efile, u64 * iter
 			{0, 0, 0, 0}
 		};
 
-		c = getopt_long(argc, argv, "d:e:hi:rs:v", long_options, &option_index);
+		c = getopt_long(argc, argv, "d:ehi:rs:v", long_options, &option_index);
 		if (c == -1)
 			break;
 		switch (c) {
@@ -58,7 +58,7 @@ int parseOptions(int argc, char ** argv, u64 * db_size, char * efile, u64 * iter
 				sscanf(optarg, "%llu", db_size);
 				break;
 			case 'e':
-				sscanf(optarg, "%s", efile);
+				*efile = 1;
 				break;
 			case 'h':
 				printHelp();
