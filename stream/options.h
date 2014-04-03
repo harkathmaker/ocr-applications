@@ -1,5 +1,6 @@
 #include <getopt.h>
 #include <stdio.h>
+#include <string.h>
 
 #ifndef __OCR__
 	#define __OCR__
@@ -27,11 +28,10 @@ void printHelp() {
 	return;
 }
 
-int parseOptions(int argc, char ** argv, u64 * db_size, int * efile, u64 * iterations, int * verify, STREAM_TYPE * scalar, int * verbose) {
+int parseOptions(int argc, char ** argv, u64 * db_size, char * efile, u64 * iterations, int * verify, STREAM_TYPE * scalar, int * verbose) {
 	char c;
 	int help = 0;
 	*db_size = 1000000;
-	*efile = 0;
 	*iterations = 1;
 	*verify = 0;
 	*scalar = 3.0;
@@ -41,7 +41,7 @@ int parseOptions(int argc, char ** argv, u64 * db_size, int * efile, u64 * itera
 		int option_index = 0;
 		static struct option long_options[] = {
 			{"db_size",     required_argument,  0,              'd'},
-			{"export",      no_argument,        0,              'e'},
+			{"export",      required_argument,  0,              'e'},
 			{"help",        no_argument,        0,              'h'},
 			{"iterations",  required_argument,  0,              'i'},
 			{"verify",      no_argument,        0,              'r'},
@@ -50,7 +50,7 @@ int parseOptions(int argc, char ** argv, u64 * db_size, int * efile, u64 * itera
 			{0, 0, 0, 0}
 		};
 
-		c = getopt_long(argc, argv, "d:ehi:rs:v", long_options, &option_index);
+		c = getopt_long(argc, argv, "d:e:hi:rs:v", long_options, &option_index);
 		if (c == -1)
 			break;
 		switch (c) {
@@ -58,7 +58,7 @@ int parseOptions(int argc, char ** argv, u64 * db_size, int * efile, u64 * itera
 				sscanf(optarg, "%llu", db_size);
 				break;
 			case 'e':
-				*efile = 1;
+				sscanf(optarg, "%s", efile);
 				break;
 			case 'h':
 				printHelp();
@@ -78,6 +78,7 @@ int parseOptions(int argc, char ** argv, u64 * db_size, int * efile, u64 * itera
 				break;
 			case '?':
 				PRINTF("Unknown option -%c.\n",optopt);
+				return 1;
 				break;
 		}
 	}
