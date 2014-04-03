@@ -2,7 +2,7 @@ CC=gcc
 CFLAGS=-I${OCR_ROOT}/include -g
 LDFLAGS=-L${OCR_ROOT}/lib -locr
 
-all : native_stream.o serial_stream.o parallel_stream.o parallel_edt_breakdown_stream.o \
+all : native_stream.o serial_stream.o serial_edt_breakdown_stream.o parallel_stream.o\
       parallel_db_breakdown_stream.o parallel_db_edt_breakdown_stream.o 
 
 native_stream.o : native_stream.c
@@ -11,11 +11,11 @@ native_stream.o : native_stream.c
 serial_stream.o : serial_stream.c
 	$(CC) $(CFLAGS) $(LDFLAGS) serial_stream.c -o serial_stream
 
+serial_edt_breakdown_stream.o : serial_edt_breakdown_stream.c
+	$(CC) $(CFLAGS) $(LDFLAGS) serial_edt_breakdown_stream.c -o serial_edt_breakdown_stream
+
 parallel_stream.o : parallel_stream.c
 	$(CC) $(CFLAGS) $(LDFLAGS) parallel_stream.c -o parallel_stream
-
-parallel_edt_breakdown_stream.o : parallel_edt_breakdown_stream.c
-	$(CC) $(CFLAGS) $(LDFLAGS) parallel_edt_breakdown_stream.c -o parallel_edt_breakdown_stream
 
 parallel_db_breakdown_stream.o : parallel_db_breakdown_stream.c
 	$(CC) $(CFLAGS) $(LDFLAGS) parallel_db_breakdown_stream.c -o parallel_db_breakdown_stream
@@ -24,5 +24,5 @@ parallel_db_edt_breakdown_stream.o : parallel_db_edt_breakdown_stream.c
 	$(CC) $(CFLAGS) $(LDFLAGS) parallel_db_edt_breakdown_stream.c -o parallel_db_edt_breakdown_stream
 
 clean :
-	rm -rf native_stream serial_stream parallel_stream parallel_edt_breakdown_stream \
+	rm -rf native_stream serial_stream serial_edt_breakdown_stream parallel_stream\
 		   parallel_db_breakdown_stream parallel_db_edt_breakdown_stream

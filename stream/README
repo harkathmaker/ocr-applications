@@ -1,24 +1,26 @@
 *****************************
 ** Current Status of Files **
 *****************************
+generate_results.py:
+	-- Not implemented
+
+options.h:
+	-- Support for parallel_stream.c and serial_stream.c
 
 parallel_db_edt_breakdown_stream.c:
--- getopt is not supported
+	-- getopt is not supported
 
 parallel_edt_breakdown_stream.c:
--- getopt is not supported
+	-- getopt is not supported
 
 parallel_db_breakdown_stream.c:
--- getopt is not supported
+	-- getopt is not supported
 
 parallel_stream.c:
-++ getopt (both long and short options) added
--- export to file is not implemented
--- verbose is not implemented
+	-- Full getopt is supported
 
 serial_stream.c
--- export to file is not implemented
--- verbose is not implemented
+	-- Full getopt is supported
 
 ************************
 ** Build Instructions **
@@ -34,13 +36,13 @@ To make specific files:
 ***********************
 ** Overview of Files **
 ***********************
+generate_results.py:
+	-- Generates results and graphs for serial and parallel stream versions
 
 options.h:
-	Contains getopt parsing for *_stream.c files
+	-- Contains getopt parsing for *_stream.c files
 
 parallel_db_edt_breakdown_stream.c:
-
-parallel_edt_breakdown_stream.c:
 
 parallel_db_breakdown_stream.c:
 
@@ -52,23 +54,19 @@ parallel_stream.c:
 	   with the difference being that there will be "split" instances of pipelineEDT each
 	   operating on db_size / split.
 
+serial_edt_breakdown_stream.c:
+	-- Breaks apart vector operations (COPY, SCALE, ADD, TRIAD) into 
+	   separate EDTs
+
 serial_stream.c:
 	-- Serial implementation of stream in OCR.
-	-- Vector operations are run in the following order: 
+	-- Vector operations are run in a single EDT (iterEdt) in the following order: 
 	   COPY --> SCALE --> ADD --> TRIAD
+
+- e | --export CSV files:
+	Timing data is reported in the following format:
+	Tria1 1, Trial 2, Trial 3, ... , Trial N, Average of N Trials
 
 ***********
 ** Notes **
 ***********
-
-parallel_db_edt_breakdown_stream.c:
-
-parallel_edt_breakdown_stream.c:
-
-parallel_db_breakdown_stream.c:
-
-parallel_stream.c:
-	-- getopt is supported
-
-serial_stream.c
-	-- getopt is supported
