@@ -8,7 +8,7 @@
 #ifndef MATRIX_H
 #define	MATRIX_H
 
-//#include <iostream>
+#include <iostream>
 
 extern "C" {
 	#include <pthread.h>
