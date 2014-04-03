@@ -85,7 +85,7 @@ int parseOptions(int argc, char ** argv, u64 * db_size, char * efile, u64 * iter
 	return help;
 }
 
-int parseParallelOptions(int argc, char ** argv, u64 * db_size, int * efile, u64 * iterations, u64 * split, u64 * chunk, int * verify, STREAM_TYPE * scalar, int * verbose) {
+int parseParallelOptions(int argc, char ** argv, u64 * db_size, char * efile, u64 * iterations, u64 * split, u64 * chunk, int * verify, STREAM_TYPE * scalar, int * verbose) {
 	char c;
 	int help = 0;
 	*db_size = 1000000;
@@ -100,7 +100,7 @@ int parseParallelOptions(int argc, char ** argv, u64 * db_size, int * efile, u64
 		int option_index = 0;
 		static struct option long_options[] = {
 			{"db_size",     required_argument,  0,              'd'},
-			{"export",      no_argument,        0,              'e'},
+			{"export",      required_argument,  0,              'e'},
 			{"help",        no_argument,        0,              'h'},
 			{"iterations",  required_argument,  0,              'i'},
 			{"split",       required_argument,  0,              'p'},
@@ -110,7 +110,7 @@ int parseParallelOptions(int argc, char ** argv, u64 * db_size, int * efile, u64
 			{0, 0, 0, 0}
 		};
 
-		c = getopt_long(argc, argv, "d:ehi:n:rs:v", long_options, &option_index);
+		c = getopt_long(argc, argv, "d:e:hi:n:rs:v", long_options, &option_index);
 		if (c == -1)
 			break;
 		switch (c) {
@@ -118,7 +118,7 @@ int parseParallelOptions(int argc, char ** argv, u64 * db_size, int * efile, u64
 				sscanf(optarg, "%llu", db_size);
 				break;
 			case 'e':
-				*efile = 1;
+				sscanf(optarg, "%s", efile);
 				break;
 			case 'h':
 				printHelp();
