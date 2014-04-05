@@ -110,7 +110,7 @@ int parseParallelOptions(int argc, char ** argv, u64 * db_size, char * efile, u6
 			{0, 0, 0, 0}
 		};
 
-		c = getopt_long(argc, argv, "d:e:hi:n:rs:v", long_options, &option_index);
+		c = getopt_long(argc, argv, "d:e:hi:n:p:rs:v", long_options, &option_index);
 		if (c == -1)
 			break;
 		switch (c) {

@@ -8,15 +8,15 @@ options.h:
 	-- Support for parallel_stream.c and serial_stream.c
 
 parallel_db_edt_breakdown_stream.c:
-	-- getopt is not supported
-
-parallel_edt_breakdown_stream.c:
-	-- getopt is not supported
+	-- Full getopt is supported
 
 parallel_db_breakdown_stream.c:
-	-- getopt is not supported
+	-- Full getopt is supported
 
 parallel_stream.c:
+	-- Full getopt is supported
+
+serial_edt_breakdown_stream.c:
 	-- Full getopt is supported
 
 serial_stream.c
@@ -26,11 +26,11 @@ serial_stream.c
 ** Build Instructions **
 ************************
 
-To make all files:
+To build all files:
 	make all 
 
-To make specific files: 
-	make <file_name.o>
+To build specific file: 
+	make <file_name>.o
 	ex: make serial_stream.o
 
 ***********************
@@ -43,8 +43,22 @@ options.h:
 	-- Contains getopt parsing for *_stream.c files
 
 parallel_db_edt_breakdown_stream.c:
+	-- Combines parall_db_breakdown_stream.c and serial_edt_breakdown_stream.chunk.
+	-- Datablocks are "broken down" by "split" number of "chunk"s.
+	-- Vector operations are broken apart into separate EDTs.
 
 parallel_db_breakdown_stream.c:
+	-- Represents a datablock of size "db_size" by "split" number of "chunk"s
+	   where chunk = db_size / split
+	-- "db_size" and "split" should be set up such that db_size % split = 0.
+	-- partial a, b, and c "arrays" each of size "chunk" and timings of size iterations are stored in EACH datablock 
+	   ex: db_size = 10, split = 2, chunk = 10 / 2 = 5
+	       So, 2 datablocks with each a, b, c array having size 5 will be created
+		   instead of 1 datablock of size 10 for each a, b, c, array
+		                   a                      b                          c                               timings
+		datablock0 = [0 to (chunk - 1)] [chunk to (2 * chunk - 1)] [2 * chunk to (3 * chunk - 1)] [3 * chunk to (3 * chunk + iterations)]
+		datablock1 = [0 to (chunk - 1)] [chunk to (2 * chunk - 1)] [2 * chunk to (3 * chunk - 1)] [3 * chunk to (3 * chunk + iterations)]
+
 
 parallel_stream.c:
 	-- Simple parallel implementation of stream in OCR.

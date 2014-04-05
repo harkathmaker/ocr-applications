@@ -1,5 +1,7 @@
 #include "options.h"
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 #include <sys/time.h> 
 
@@ -28,10 +30,11 @@ double mysecond() {
 	return ((double) tp.tv_sec + (double) tp.tv_usec * 1.e-6 );
 }
 
-void export_csv(char * name, u64 iterations, STREAM_TYPE * trials, STREAM_TYPE avg) {
+void export_csv(char * name, u64 db_size, u64 iterations, STREAM_TYPE * trials, STREAM_TYPE avg) {
 	char path[150];
-	strcpy(path, "./results/");
-	strcat(path, name);
+	//strcpy(path, "./results/");
+	strcpy(path, name);
+	printf("path=%s\n", path);
 	FILE * f = fopen(path, "a");
 	if (f == NULL) {
 		PRINTF("Error creating export file.");
@@ -40,8 +43,8 @@ void export_csv(char * name, u64 iterations, STREAM_TYPE * trials, STREAM_TYPE a
 
 	u64 i;
 	for (i = 0; i < iterations; i++) 
-		fprintf(f, "%f, ", trials[i]);
-	fprintf(f, "%f\n", avg);
+		fprintf(f, "%llu %f\n", db_size, trials[i]);
+	//fprintf(f, "%f\n", avg);
 
 	fclose(f);
 	return;
@@ -158,7 +161,7 @@ ocrGuid_t resultsEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 	PRINTF("AVERAGE Time Per Trial: %f s\n", avg);
 
 	if (strcmp((char *) depv[1].ptr, "") != 0) 
-		export_csv((char *) depv[1].ptr, iterations, timingsum, avg);
+		export_csv((char *) depv[1].ptr, db_size, iterations, timingsum, avg);
 
 	if (verify) {
 		STREAM_TYPE a = 0, ai, b = 0, bi, c = 0, ci;
