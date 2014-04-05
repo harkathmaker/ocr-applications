@@ -30,10 +30,11 @@ double mysecond() {
 	return ((double) tp.tv_sec + (double) tp.tv_usec * 1.e-6 );
 }
 
-void export_csv(char * name, u64 iterations, STREAM_TYPE * trials, STREAM_TYPE avg) {
+void export_csv(char * name, u64 db_size, u64 iterations, STREAM_TYPE * trials, STREAM_TYPE avg) {
 	char path[150];
-	strcpy(path, "./results/");
-	strcat(path, name);
+	//strcpy(path, "./results/");
+	strcpy(path, name);
+	printf("path=%s\n", path);
 	FILE * f = fopen(path, "a");
 	if (f == NULL) {
 		PRINTF("Error creating export file.");
@@ -42,8 +43,8 @@ void export_csv(char * name, u64 iterations, STREAM_TYPE * trials, STREAM_TYPE a
 
 	u64 i;
 	for (i = 0; i < iterations; i++) 
-		fprintf(f, "%f, ", trials[i]);
-	fprintf(f, "%f\n", avg);
+		fprintf(f, "%llu %f\n", db_size, trials[i]);
+	//fprintf(f, "%f\n", avg);
 
 	fclose(f);
 	return;
@@ -177,9 +178,9 @@ ocrGuid_t iterEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 	ocrEdtCreate(&pipeExecGuid, pipeExecTemplateGuid, EDT_PARAM_DEF, paramv, EDT_PARAM_DEF, NULL_GUID,
 				 EDT_PROP_FINISH, NULL_GUID, &pipeExecDone);
 
-	// PRINTF("FINISHED ITER\n");
+	// PRINTF("FINISHED ITER %llu \n", iterations);
 	if (paramv[0] < iterations) {
-		paramv[0] += 1;
+		paramv[0] += 1;;
 		// EDT for next iteration
 		ocrEdtCreate(&nextIterGuid, nextIterTemplateGuid, EDT_PARAM_DEF, paramv, EDT_PARAM_DEF, NULL_GUID,
 					 EDT_PROP_FINISH, NULL_GUID, NULL);
@@ -191,7 +192,6 @@ ocrGuid_t iterEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 	// Dependencies for pipeline
 	for (i = 0; i < split; i++)
 		ocrAddDependence((ocrGuid_t) depv[i].guid, pipeExecGuid, i, DB_MODE_ITW);
-	// PRINTF("FINISHED ITER\n");
 	return NULL_GUID;
 }
 
@@ -199,6 +199,7 @@ ocrGuid_t iterEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 // u64 rparamv[7] = {db_size, iterations, split, chunk, verify, scalar, verbose}
 ocrGuid_t resultsEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 	u64 i, j;
+	u64 db_size = paramv[0];
 	u64 iterations = paramv[1];
 	u64 split = paramv[2];
 	u64 chunk = paramv[3];
@@ -223,7 +224,7 @@ ocrGuid_t resultsEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 	PRINTF("AVERAGE Time Per Trial: %f s\n", avg);
 
 	if (strcmp((char *) depv[split].ptr, "") != 0) 
-		export_csv((char *) depv[split].ptr, iterations, timingsum, avg);
+		export_csv((char *) depv[split].ptr, db_size, iterations, timingsum, avg);
 
 	if (verify) {
 		STREAM_TYPE a = 0, ai, b = 0, bi, c = 0, ci;
@@ -283,7 +284,6 @@ ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
 		return NULL_GUID;
 	}
 
-
 	u64 nparamc = 13, rparamc = 7;
 	STREAM_TYPE * chunkArray;
 	char * efileArray;
@@ -294,7 +294,7 @@ ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
 	ocrEdtTemplateCreate(&resultsTemplateGuid, &resultsEdt, rparamc, split + 2);
 
 	ocrEdtTemplateCreate(&pipeExecTemplateGuid, &pipeExecEdt, nparamc, split);
-	ocrEdtTemplateCreate(&nextIterTemplateGuid, &iterEdt, nparamc, split + 2);
+	ocrEdtTemplateCreate(&nextIterTemplateGuid, &iterEdt, nparamc, split + 1);
 	ocrEdtTemplateCreate(&pipelineTemplateGuid, &pipelineEdt, nparamc, 1);
 
 	ocrEdtTemplateCreate(&copyTemplateGuid, &copyEdt, nparamc, 1);
