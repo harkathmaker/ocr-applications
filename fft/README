@@ -1,0 +1,16 @@
+serial_c.c
+Baseline serial implementation of Cooley-Tukey algorithm.
+
+fft_serial_ocr.c
+Serial implementation of Cooley-Tukey algorithm using OCR. Each iteration (for testing multiple runs) is executed in a single EDT. No parallelism is introduced in this version.
+
+fft_dependence_ocr.cpp
+In the first stage of FFT, recursively spawns child EDTs with smaller subsets of the data to transform, down to the base case of 1 element.
+The second "butterfly" stage is done in a separate "end EDT". This is done serially.
+
+fft_dependence_blocked_ocr.cpp
+To minimize EDT creation overhead, children are only spawned in the first stage until a minimum serial block size (can be user-specified) is reached.
+EndEDTs divide their work among a number of slave EDTs, which each perform a portion of the "butterfly" stage. Each slave processes serialBlockSize elements (same as above).
+
+fft_parallel_separate_datablocks.cpp
+Same as fft_dependence_blocked_ocr.cpp, but the input data, real output, and imaginary output are contained in separate datablocks, rather than in a single large block as in other prior implementations.

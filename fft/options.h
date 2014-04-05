@@ -9,7 +9,8 @@
 void printHelp(char *argv[], bool supportSerialBlocks) {
 	PRINTF("\n");
 	if(supportSerialBlocks) {
-		PRINTF("%s -n N [--serial-block|-s SIZE] [--check|-c] [-i iterations] [--verbose|-v] [--print-result|-p]\n",argv[0]);
+		PRINTF("%s -n N [--serial-block|-s SIZE] [--check|-c] [-i iterations] [--verbose|-v]\n",argv[0]);
+		PRINTF("    [--print-result|-p]\n");
 		PRINTF("    --serial-block|-s SIZE  Divide the workload into minimum size chunks of 2^SIZE elements. Default=16384.\n");
 	} else {
 		PRINTF("%s -n N  [--check|-c] [-i iterations] [--verbose|-v] [--print-result|-p]\n",argv[0]);

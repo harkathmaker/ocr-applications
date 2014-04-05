@@ -28,17 +28,20 @@ ocrGuid_t fftIterationEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[])
 	ocrGuid_t startTempGuid = paramv[0];
 	ocrGuid_t endTempGuid = paramv[1];
 	ocrGuid_t endSlaveTempGuid = paramv[2];
-	bool verbose = paramv[7];
-	bool printResults = paramv[8];
-	u64 serialBlockSize = paramv[9];
+	u64 N = paramv[3];
+	bool verbose = paramv[4];
+	u64 serialBlockSize = paramv[5];
 	float *x_in = (float*)depv[0].ptr;
 	float *X_real = (float*)depv[1].ptr;
 	float *X_imag = (float*)depv[2].ptr;
-	u64 N = paramv[3];
 	int i;
 
-	u64 edtParamv[10] = { startTempGuid, endTempGuid, endSlaveTempGuid, N, 1 /* step size */, 0 /* offset */, 0 /* x_in_offset */, verbose, printResults, serialBlockSize };
-	ocrGuid_t dependencies[3] = { paramv[4], paramv[5], paramv[6] };
+	if(verbose) {
+		PRINTF("Hello from EDT %lu\n",paramv[6]);
+	}
+
+	u64 edtParamv[9] = { startTempGuid, endTempGuid, endSlaveTempGuid, N, 1 /* step size */, 0 /* offset */, 0 /* x_in_offset */, verbose, serialBlockSize };
+	ocrGuid_t dependencies[3] = { depv[0].guid, depv[1].guid, depv[2].guid };
 
 	if(verbose) {
 		PRINTF("Creating iteration child\n");
@@ -66,8 +69,7 @@ ocrGuid_t fftStartEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
 	u64 offset = paramv[5];
 	u64 x_in_offset = paramv[6];
 	bool verbose = paramv[7];
-	bool printResults = paramv[8];
-	u64 serialBlockSize = paramv[9];
+	u64 serialBlockSize = paramv[8];
 	float *x_in = (float*)data_in;
 	float *X_real = (float*)(data_real+offset);
 	float *X_imag = (float*)(data_imag+offset);
@@ -80,8 +82,8 @@ ocrGuid_t fftStartEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
 		ditfft2(X_real, X_imag, x_in+x_in_offset, N, step);
 	} else {
 		// DFT even side
-		u64 childParamv[9] = { startGuid, endGuid, endSlaveGuid, N/2, 2 * step, 0 + offset, x_in_offset, verbose, printResults };
-		u64 childParamv2[9] = { startGuid, endGuid, endSlaveGuid, N/2, 2 * step, N/2 + offset, x_in_offset + step, verbose, printResults };
+		u64 childParamv[9] = { startGuid, endGuid, endSlaveGuid, N/2, 2 * step, 0 + offset, x_in_offset, verbose, serialBlockSize };
+		u64 childParamv2[9] = { startGuid, endGuid, endSlaveGuid, N/2, 2 * step, N/2 + offset, x_in_offset + step, verbose, serialBlockSize };
 
 		if(verbose) {
 			PRINTF("Creating children of size %d\n",N/2);
@@ -137,8 +139,7 @@ ocrGuid_t fftEndEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
 	u64 step = paramv[4];
 	u64 offset = paramv[5];
 	bool verbose = paramv[7];
-	bool printResults = paramv[8];
-	u64 serialBlockSize = paramv[9];
+	u64 serialBlockSize = paramv[8];
 	float *x_in = (float*)data_in+offset;
 	float *X_real = (float*)(data_real+offset);
 	float *X_imag = (float*)(data_imag+offset);
@@ -221,15 +222,12 @@ ocrGuid_t fftEndSlaveEdt(u32 paramc, u64 *paramv, u32 depc, ocrEdtDep_t depv[]) 
 // Prints the final result of the computation. Called as the last EDT.
 ocrGuid_t finalPrintEdt(u32 paramc, u64 *paramv, u32 depc, ocrEdtDep_t depv[]) {
 	int i;
-	ocrGuid_t startGuid = paramv[0];
-	ocrGuid_t endGuid = paramv[1];
-	ocrGuid_t endSlaveGuid = paramv[2];
-	bool verbose = paramv[7];
-	bool printResults = paramv[8];
+	u64 N = paramv[0];
+	bool verbose = paramv[1];
+	bool printResults = paramv[2];
 	float *data_in = (float*)depv[1].ptr;
 	float *data_real = (float*)depv[2].ptr;
 	float *data_imag = (float*)depv[3].ptr;
-	u64 N = paramv[3];
 	float *x_in = (float*)data_in;
 	float *X_real = (float*)(data_real);
 	float *X_imag = (float*)(data_imag);
@@ -282,11 +280,11 @@ extern "C" ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv
 	}
 
 	ocrGuid_t startTempGuid,endTempGuid,printTempGuid,endSlaveTempGuid,iterationTempGuid;
-	ocrEdtTemplateCreate(&iterationTempGuid, &fftIterationEdt, 10, 4);
-	ocrEdtTemplateCreate(&startTempGuid, &fftStartEdt, 10, 3);
-	ocrEdtTemplateCreate(&endTempGuid, &fftEndEdt, 10, 5);
+	ocrEdtTemplateCreate(&iterationTempGuid, &fftIterationEdt, 7, 4);
+	ocrEdtTemplateCreate(&startTempGuid, &fftStartEdt, 9, 3);
+	ocrEdtTemplateCreate(&endTempGuid, &fftEndEdt, 9, 5);
 	ocrEdtTemplateCreate(&endSlaveTempGuid, &fftEndSlaveEdt, 5, 3);
-	ocrEdtTemplateCreate(&printTempGuid, &finalPrintEdt, 9, 4);
+	ocrEdtTemplateCreate(&printTempGuid, &finalPrintEdt, 3, 4);
 	
 	float *x_in;
 	// Output for the FFT
@@ -311,7 +309,6 @@ extern "C" ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv
 	//x_in[5] = 1;
 	//x_in[7] = -1;
 
-	u64 edtParamv[10] = { startTempGuid, endTempGuid, endSlaveTempGuid, N, dataInGuid, dataRealGuid, dataImagGuid, verbose, printResults, serialBlockSize };
 	
 	// Create an EDT out of the EDT template
 	ocrGuid_t edtGuid, edtPrevGuid, printEdtGuid, edtEventGuid, edtPrevEventGuid;
@@ -323,6 +320,7 @@ extern "C" ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv
 	edtPrevEventGuid = NULL_GUID;
 
 	for(i=1;i<=iterations;i++) {
+		u64 edtParamv[7] = { startTempGuid, endTempGuid, endSlaveTempGuid, N, verbose, serialBlockSize, i };
 		ocrEdtCreate(&edtGuid, iterationTempGuid, EDT_PARAM_DEF, edtParamv, EDT_PARAM_DEF, NULL_GUID, EDT_PROP_FINISH, NULL_GUID, &edtEventGuid);
 		edtStack.push(edtGuid);
 		eventStack.push(edtEventGuid);
@@ -332,6 +330,7 @@ extern "C" ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv
 	if(verify) {
 		edtEventGuid = setUpVerify(dataInGuid, dataRealGuid, dataImagGuid, N, edtEventGuid);
 	}
+	u64 edtParamv[3] = { N, verbose, printResults };
 	// Create finish EDT, with dependence on last EDT
 	ocrGuid_t finishDependencies[4] = { edtEventGuid, dataInGuid, dataRealGuid, dataImagGuid };
 	ocrEdtCreate(&printEdtGuid, printTempGuid, EDT_PARAM_DEF, edtParamv, EDT_PARAM_DEF, finishDependencies, EDT_PROP_NONE, NULL_GUID, NULL);

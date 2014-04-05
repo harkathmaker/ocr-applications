@@ -5,13 +5,16 @@ LDFLAGS=-L${OCR_ROOT}/lib -locr -lm
 	echo "$(CC) $(CFLAGS) $(LDFLAGS) $@"
 	$(CC) $(CFLAGS) $(LDFLAGS) $@
 
-%: %.c
+%.out: %.c
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $<
 
 %.o : %.cpp
 	echo "$(CC) $(CFLAGS) $(LDFLAGS) $@"
 	$(CC) $(CFLAGS) $(LDFLAGS) $@
 
-%: %.cpp
+%.out: %.cpp
 	echo "our rule"
 	$(CC) -lstdc++ $(CFLAGS) $(LDFLAGS) $< -o $@
+
+clean:
+	rm *.out
