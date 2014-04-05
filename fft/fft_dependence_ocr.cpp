@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <stack>
 
 #include "options.h"
 #include "verify.h"
@@ -17,11 +18,25 @@
 #include "ocr.h"
 #endif
 
+// Performs one entire iteration of FFT.
+// These are meant to be chained serially for timing and testing.
+ocrGuid_t fftIterationEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
+	ocrGuid_t startTempGuid = paramv[0];
+	bool verbose = paramv[6];
+	if(verbose) {
+		PRINTF("Creating iteration child\n");
+	}
+
+	ocrGuid_t dependencies[1] = { depv[0].guid };
+
+	ocrGuid_t edtGuid;
+	ocrEdtCreate(&edtGuid, startTempGuid, EDT_PARAM_DEF, paramv, EDT_PARAM_DEF, dependencies, EDT_PROP_FINISH, NULL_GUID, NULL_GUID);
+
+	return NULL_GUID;
+}
+
 ocrGuid_t fftStartEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
 	int i;
-	//for(i=0;i<paramc;i++) {
-	//	PRINTF("paramv[%d]: %lu\n",i,paramv[i]);
-	//}
 	ocrGuid_t startGuid = paramv[0];
 	ocrGuid_t endGuid = paramv[1];
 	float *data = (float*)depv[0].ptr;
@@ -35,9 +50,6 @@ ocrGuid_t fftStartEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
 	float *x_in = (float*)data;
 	float *X_real = (float*)(data+offset + N*step);
 	float *X_imag = (float*)(data+offset + 2*N*step);
-	//PRINTF("Step %d offset: %d N*step: %d\n", step, offset, N*step);
-	
-	//sleep(1);
 
 	if(N == 1) {
 		X_real[0] = x_in[x_in_offset];
@@ -112,15 +124,11 @@ ocrGuid_t fftEndEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
 		X_imag[k+N/2] = t_imag -
 			(twiddle_imag*xr + twiddle_real*xi);
 	}
-	//sleep(1);
 	return NULL_GUID;
 }
 
 ocrGuid_t finalPrintEdt(u32 paramc, u64 *paramv, u32 depc, ocrEdtDep_t depv[]) {
 	int i;
-	//for(i=0;i<paramc;i++) {
-	//	PRINTF("paramv[%d]: %lu\n",i,paramv[i]);
-	//}
 	ocrGuid_t startGuid = paramv[0];
 	ocrGuid_t endGuid = paramv[1];
 	float *data = (float*)depv[1].ptr;
@@ -134,7 +142,6 @@ ocrGuid_t finalPrintEdt(u32 paramc, u64 *paramv, u32 depc, ocrEdtDep_t depv[]) {
 	float *X_real = (float*)(data+offset + N*step);
 	float *X_imag = (float*)(data+offset + 2*N*step);
 
-	//sleep(5);
 	if(verbose) {	
 		PRINTF("Final print EDT\n");
 	}
@@ -156,8 +163,9 @@ ocrGuid_t finalPrintEdt(u32 paramc, u64 *paramv, u32 depc, ocrEdtDep_t depv[]) {
 }
 
 extern "C" ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
-	ocrGuid_t startTempGuid,endTempGuid,printTempGuid;
+	ocrGuid_t startTempGuid,iterationTempGuid,endTempGuid,printTempGuid;
 	ocrEdtTemplateCreate(&startTempGuid, &fftStartEdt, 8, 1);
+	ocrEdtTemplateCreate(&iterationTempGuid, &fftIterationEdt, 8, 2);
 	ocrEdtTemplateCreate(&endTempGuid, &fftEndEdt, 8, 3);
 	ocrEdtTemplateCreate(&printTempGuid, &finalPrintEdt, 8, 2);
 	
@@ -194,27 +202,46 @@ extern "C" ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv
 		x[i] = 0;
 	}
 	x[1] = 1;
-	//x[3] = -3;
-	//x[4] = 8;
-	//x[5] = 9;
-	//x[6] = 1;
 
 
-	u64 edtParamv[8] = { startTempGuid, endTempGuid, N, 1 /* step size */, 0 /* offset */, 0 /* x_in_offset */, verbose, printResults};
 	
 
 	// Create an EDT out of the EDT template
 	ocrGuid_t edtGuid, printEdtGuid, edtEventGuid;
-	ocrEdtCreate(&edtGuid, startTempGuid, EDT_PARAM_DEF, edtParamv, EDT_PARAM_DEF, NULL_GUID, EDT_PROP_FINISH, NULL_GUID, &edtEventGuid);
 
+	std::stack<ocrGuid_t> edtStack;
+	std::stack<ocrGuid_t> eventStack;
+	edtEventGuid = NULL_GUID;
+	ocrGuid_t edtPrevEventGuid = NULL_GUID;
+	u64 edtParamv[8] = { startTempGuid, endTempGuid, N, 1 /* step size */, 0 /* offset */, 0 /* x_in_offset */, verbose, printResults};
+
+	for(i=1;i<=iterations;i++) {
+		ocrEdtCreate(&edtGuid, iterationTempGuid, EDT_PARAM_DEF, edtParamv, EDT_PARAM_DEF, NULL_GUID, EDT_PROP_FINISH, NULL_GUID, &edtEventGuid);
+		edtStack.push(edtGuid);
+		eventStack.push(edtEventGuid);
+	}
+
+	edtEventGuid = eventStack.top();
 	if(verify) {
 		edtEventGuid = setUpVerify(dataGuid, NULL_GUID, NULL_GUID, N, edtEventGuid);
 	}
 
 	ocrGuid_t finishDependencies[2] = { edtEventGuid, dataGuid };
 	ocrEdtCreate(&printEdtGuid, printTempGuid, EDT_PARAM_DEF, edtParamv, EDT_PARAM_DEF, finishDependencies, EDT_PROP_NONE, NULL_GUID, NULL);
-	
-	ocrAddDependence(dataGuid, edtGuid, 0, DB_MODE_ITW);
+	eventStack.pop();
+
+	while(!edtStack.empty()) {
+		edtGuid = edtStack.top();
+		if(!eventStack.empty()) {
+			edtEventGuid = eventStack.top();
+		} else {
+			edtEventGuid = NULL_GUID;
+		}
+		ocrAddDependence(dataGuid, edtGuid, 0, DB_MODE_ITW);
+		ocrAddDependence(edtEventGuid, edtGuid, 1, DB_MODE_RO);
+		edtStack.pop();
+		eventStack.pop();
+	}
 
 	return NULL_GUID;
 }
