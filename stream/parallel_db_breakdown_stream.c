@@ -30,10 +30,11 @@ double mysecond() {
 	return ((double) tp.tv_sec + (double) tp.tv_usec * 1.e-6 );
 }
 
-void export_csv(char * name, u64 iterations, STREAM_TYPE * trials, STREAM_TYPE avg) {
+void export_csv(char * name, u64 db_size, u64 iterations, STREAM_TYPE * trials, STREAM_TYPE avg) {
 	char path[150];
-	strcpy(path, "./results/");
-	strcat(path, name);
+	//strcpy(path, "./results/");
+	strcpy(path, name);
+	printf("path=%s\n", path);
 	FILE * f = fopen(path, "a");
 	if (f == NULL) {
 		PRINTF("Error creating export file.");
@@ -42,8 +43,8 @@ void export_csv(char * name, u64 iterations, STREAM_TYPE * trials, STREAM_TYPE a
 
 	u64 i;
 	for (i = 0; i < iterations; i++) 
-		fprintf(f, "%f, ", trials[i]);
-	fprintf(f, "%f\n", avg);
+		fprintf(f, "%llu %f\n", db_size, trials[i]);
+	//fprintf(f, "%f\n", avg);
 
 	fclose(f);
 	return;
@@ -133,6 +134,7 @@ ocrGuid_t iterEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 // u64 rparamv[6] = {db_size, iterations, split, chunk, verify, scalar, verbose};
 ocrGuid_t resultsEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 	u64 i, j;
+	u64 db_size = paramv[0];
 	u64 iterations = paramv[1];
 	u64 split = paramv[2];
 	u64 chunk = paramv[3];
@@ -158,7 +160,7 @@ ocrGuid_t resultsEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 	PRINTF("AVERAGE Time Per Trial: %f s\n", avg);
 
 	if (strcmp((char *) depv[split].ptr, "") != 0) 
-		export_csv((char *) depv[split].ptr, iterations, timingsum, avg);
+		export_csv((char *) depv[split].ptr, db_size, iterations, timingsum, avg);
 
 	if (verify) {
 		STREAM_TYPE a = 0, ai, b = 0, bi, c = 0, ci;
@@ -223,7 +225,7 @@ ocrGuid_t mainEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 	STREAM_TYPE * chunkArray;
 	char * efileArray;
 	ocrGuid_t dataGuids[split];
-	ocrGuid_t iterTemplateGuid, efileGuid, iterGuid, iterDone, resultsTemplateGuid, resultsGuid, pipeExecTemplateGuid, 
+	ocrGuid_t iterTemplateGuid, iterGuid, iterDone, efileGuid, resultsTemplateGuid, resultsGuid, pipeExecTemplateGuid, 
 			  nextIterTemplateGuid, pipelineTemplateGuid;
 	ocrEdtTemplateCreate(&iterTemplateGuid, &iterEdt, nparamc, split);
 	ocrEdtTemplateCreate(&resultsTemplateGuid, &resultsEdt, rparamc, split + 2);
@@ -234,7 +236,7 @@ ocrGuid_t mainEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 	u64 nparamv[9] = {1, db_size, iterations, split, chunk, scalar, pipeExecTemplateGuid, nextIterTemplateGuid, pipelineTemplateGuid};
 	u64 rparamv[7] = {db_size, iterations, split, chunk, verify, scalar, verbose};
 
-	// 3 * STREAM_ARRAY_SIZE + iterations = (3 * chunk + iterations)* split
+	// 3 * db_size + iterations = (3 * chunk + iterations)* split
 	for (i = 0; i < split; i++) {
 		ocrGuid_t chunkGuid;
 		DBCREATE(&chunkGuid,(void **) &chunkArray, sizeof(STREAM_TYPE)*(3 * chunk + iterations), 0, NULL_GUID, NO_ALLOC);
