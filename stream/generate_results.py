@@ -68,7 +68,7 @@ pdbebs = [i + " -v" for i in pdbebs] if verbose == True else pdbebs
 #prefix[-1] = ';'
 #all = plot_prefix + plot_dest + "all.png\';" + title + x_label + y_label + " plot \'" + "./results/ss.dat \' lt rgb \"blue\" using 1:2,  plot \'./results/ps.dat \' lt rgb \"green\" using 1:2;"
 #print prefix
-print all
+#print all
 #subprocess.call(["gnuplot", "-e", all])
 # Need to take care of split_size
 
