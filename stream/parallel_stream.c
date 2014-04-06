@@ -1,9 +1,9 @@
+#include "helper.h"
 #include "options.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
-#include <sys/time.h> 
+#include <unistd.h> 
 
 #ifndef __OCR__
 #	define __OCR__
@@ -22,33 +22,6 @@
 			  c --> [2 * db_size to (3 * db_size - 1)]
 		timings --> [3 * db_size to (3 * db_size + iterations - 1)]
 */
-
-double mysecond() {
-	struct timeval tp;
-	struct timezone tzp;
-	int i = gettimeofday(&tp, &tzp);
-	return ((double) tp.tv_sec + (double) tp.tv_usec * 1.e-6 );
-}
-
-void export_csv(char * name, u64 db_size, u64 iterations, STREAM_TYPE * trials, STREAM_TYPE avg) {
-	char path[150];
-	//strcpy(path, "./results/");
-	strcpy(path, name);
-	printf("path=%s\n", path);
-	FILE * f = fopen(path, "a");
-	if (f == NULL) {
-		PRINTF("Error creating export file.");
-		exit(1);
-	}
-
-	u64 i;
-	for (i = 0; i < iterations; i++) 
-		fprintf(f, "%llu %f\n", db_size, trials[i]);
-	//fprintf(f, "%f\n", avg);
-
-	fclose(f);
-	return;
-}
 
 ocrGuid_t pipelineEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 	u64 i;
