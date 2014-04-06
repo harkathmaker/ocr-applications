@@ -30,8 +30,9 @@ ocrGuid_t pipelineEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 	u64 end = paramv[paramc - 1];
 	STREAM_TYPE scalar = (STREAM_TYPE) paramv[5];
 	STREAM_TYPE * data = (STREAM_TYPE *) depv[0].ptr;
+	STREAM_TYPE start = 0.0;
 
-	data[3 * db_size + paramv[0] - 1] = mysecond();
+	start = mysecond();
 
 	for (i = begin; i < end; i++)
 		data[2 * db_size + i] = data[i];
@@ -49,8 +50,9 @@ ocrGuid_t pipelineEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 		data[i] = data[db_size + i] + scalar * data[2 * db_size + i];
 	// PRINTF("FINISHED TRIAD\n");
 
-	data[3 * db_size + paramv[0] - 1] = mysecond() - data[3 * db_size + paramv[0] - 1];
+	data[3 * db_size + paramv[0] - 1] += mysecond() - start;
 
+	//printf("trial timing %llu = %f\n", paramv[0], data[3 * db_size + paramv[0] - 1]);
 	// PRINTF("FINISHED PIPELINE\n");
 	return NULL_GUID;
 }
@@ -118,12 +120,11 @@ ocrGuid_t resultsEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 	STREAM_TYPE * data = (STREAM_TYPE *) depv[0].ptr;
 	STREAM_TYPE totalsum, timingsum[iterations], avg;
 
-	for (i = 0; i < split; i++)
-		for (j = 0; j < iterations; j++)
-			timingsum[j] += data[3 * db_size + j];
+	// 3*db_size + iteration number 
 
 	PRINTF("Timing Results:\n");
 	for (i = 0; i < iterations; i++) {
+		timingsum[i] += data[3 * db_size + i];
 		if (verbose)
 			PRINTF("TRIAL %d: %f s\n", i + 1, timingsum[i]);
 		totalsum += timingsum[i];
