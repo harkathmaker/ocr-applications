@@ -14,6 +14,7 @@
 
 #include "options.h"
 #include "verify.h"
+#include "timer.h"
 
 #define SERIAL_BLOCK_SIZE_DEFAULT (1024*16)
 
@@ -231,10 +232,14 @@ ocrGuid_t finalPrintEdt(u32 paramc, u64 *paramv, u32 depc, ocrEdtDep_t depv[]) {
 	float *x_in = (float*)data_in;
 	float *X_real = (float*)(data_real);
 	float *X_imag = (float*)(data_imag);
+    double *startTime = (double*)(depv[4].ptr);
 
 	if(verbose) {
 		PRINTF("Final print EDT\n");
 	}
+
+    double endTime = mysecond();
+    PRINTF("Time to complete (seconds): %f\n",endTime-startTime);
 
 	if(printResults) {
 		PRINTF("Starting values:\n");
@@ -284,13 +289,13 @@ extern "C" ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv
 	ocrEdtTemplateCreate(&startTempGuid, &fftStartEdt, 9, 3);
 	ocrEdtTemplateCreate(&endTempGuid, &fftEndEdt, 9, 5);
 	ocrEdtTemplateCreate(&endSlaveTempGuid, &fftEndSlaveEdt, 5, 3);
-	ocrEdtTemplateCreate(&printTempGuid, &finalPrintEdt, 3, 4);
+	ocrEdtTemplateCreate(&printTempGuid, &finalPrintEdt, 3, 5);
 	
 	float *x_in;
 	// Output for the FFT
 	float *X_real;
 	float *X_imag;
-	ocrGuid_t dataInGuid,dataRealGuid,dataImagGuid;
+	ocrGuid_t dataInGuid,dataRealGuid,dataImagGuid,timeDataGuid;
 	// TODO: OCR cannot handle large datablocks
 	DBCREATE(&dataInGuid, (void **) &x_in, sizeof(float) * N, 0, NULL_GUID, NO_ALLOC);
 	DBCREATE(&dataRealGuid, (void **) &X_real, sizeof(float) * N, 0, NULL_GUID, NO_ALLOC);
@@ -330,9 +335,11 @@ extern "C" ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv
 	if(verify) {
 		edtEventGuid = setUpVerify(dataInGuid, dataRealGuid, dataImagGuid, N, edtEventGuid);
 	}
+    double startTime = 
+	DBCREATE(&timeDataGuid, (void **) &&startTime, sizeof(double), 0, NULL_GUID, NO_ALLOC);
 	u64 edtParamv[3] = { N, verbose, printResults };
 	// Create finish EDT, with dependence on last EDT
-	ocrGuid_t finishDependencies[4] = { edtEventGuid, dataInGuid, dataRealGuid, dataImagGuid };
+	ocrGuid_t finishDependencies[5] = { edtEventGuid, dataInGuid, dataRealGuid, dataImagGuid, timeDataGuid };
 	ocrEdtCreate(&printEdtGuid, printTempGuid, EDT_PARAM_DEF, edtParamv, EDT_PARAM_DEF, finishDependencies, EDT_PROP_NONE, NULL_GUID, NULL);
 	eventStack.pop();	
 
