@@ -26,8 +26,8 @@ extern "C" {
 #include "matrix.h"
 #include "timer.h"
 
-#define K_ITERATIONS 100
-#define MATRIX_N 500
+unsigned int K_ITERATIONS = 100;
+unsigned int MATRIX_N = 500;
 
 using namespace std;
 
@@ -140,15 +140,15 @@ extern "C" ocrGuid_t printEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t dep
 	time_t usec = (suseconds_t) paramv[2];
 	double* r = (double*) depv[0].ptr;
 
-	cout << "Solution:" << endl;
-	for (int i = 0; i < rows; i++)
-		cout << r[i] << " ";
-	cout << endl;
-
 	timeval t2;
 	t2.tv_sec = sec;
 	t2.tv_usec = usec;
 	double cgOcrTimeElapsed = tock(t2);
+
+	cout << "Solution:" << endl;
+	for (int i = 0; i < rows; i++)
+		cout << r[i] << " ";
+	cout << endl;
 
 	cout << "Time to test Conjugate Gradient OCR: " << cgOcrTimeElapsed << " ms" << endl << endl;
 
@@ -551,8 +551,6 @@ Matrix* conjugateGradient(Matrix *A, Matrix *x, Matrix *B)
 	Matrix foo(r_old);
 	Matrix *p_old = &foo;
 
-	cout << "derp" << endl;
-
 	int k = 0;
 	while (k < K_ITERATIONS) {
 		Matrix *rT = matrixTranspose(r_old);
@@ -710,10 +708,13 @@ void conjugateGradient_OCR(Matrix *A_m, Matrix *x_m, Matrix *B_m, ocrGuid_t resu
 #endif
 }
 
-void readMatrixFromFile(const char* fileName, Matrix &A)
+int readMatrixFromFile(const char* fileName, Matrix &A)
 {
 	ifstream f;
 	f.open(fileName);
+	if (f.is_open() == false)
+		return -1;
+
 	double n;
 	for (int row = 0; row < MATRIX_N; row++) {
 		for (int column = 0; column < MATRIX_N; column++) {
@@ -722,12 +723,38 @@ void readMatrixFromFile(const char* fileName, Matrix &A)
 		}
 	}
 	f.close();
+	return 0;
 }
 
 extern "C" ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[])
 {
+	u64 argc = getArgc(depv[0].ptr);
+	int i;
+
+	if(argc < 3) {
+		cout << "Argument 1: Matrix filename (filename.m)" << endl;
+		cout << "Argument 2: Matrix size (in rows)" << endl;
+		cout << "Argument 3: Algorithm iterations" << endl;
+		ocrShutdown();
+		return NULL_GUID;
+	}
+#ifdef DEBUG_MESSAGES
+	for(i=0;i<argc;i++) {
+		char *argv = getArgv(depv[0].ptr,i);
+		PRINTF("argv[%d]: %s\n",i,argv);
+	}
+#endif
+
+	MATRIX_N = strtol(getArgv(depv[0].ptr,2),NULL,10);
+	K_ITERATIONS = strtol(getArgv(depv[0].ptr,3),NULL,10);
+
 	Matrix A(MATRIX_N, MATRIX_N);
-	readMatrixFromFile("cg.mat", A);
+	if (readMatrixFromFile(getArgv(depv[0].ptr,1), A) == -1) {
+		cout << "Error opening matrix file" << endl;
+		ocrShutdown();
+		return NULL_GUID;
+	}
+
 	Matrix x(MATRIX_N, 1);
 	Matrix B(MATRIX_N, 1);
 	for (int row = 0; row < MATRIX_N; row++) {

@@ -1,6 +1,6 @@
 # Set matrix size here (in # of rows/columns)
-n = 500;
-density = 0.8;
+n = 100;
+density = 0.7;
 
 # Matrix generator for Conjugate Gradient algorithm
 function A = cgmatrix(n,density)
