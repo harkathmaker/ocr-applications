@@ -270,15 +270,15 @@ extern "C" ocrGuid_t CgEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]
 	cout << "k = " << k << ". Created Edt: edtC" << endl;
 #endif
 
-	//pTA
-	ocrGuid_t pTA;
+	//A * p_old
+	ocrGuid_t Ap;
 	ocrGuid_t edtD;
-	edtParams[0] = X_old_columns;
-	edtParams[1] = X_old_rows;
-	edtParams[2] = A_rows;
-	edtParams[3] = A_columns;
+	edtParams[0] = A_rows;
+	edtParams[1] = A_columns;
+	edtParams[2] = X_old_rows;
+	edtParams[3] = X_old_columns;
 	ocrEdtCreate(&edtD, productEdtTemplate, EDT_PARAM_DEF, edtParams, EDT_PARAM_DEF,
-		NULL, EDT_PROP_NONE, NULL_GUID, &pTA);
+		NULL, EDT_PROP_NONE, NULL_GUID, &Ap);
 #ifdef DEBUG_MESSAGES
 	cout << "k = " << k << ". Created Edt: edtD" << endl;
 #endif
@@ -336,80 +336,68 @@ extern "C" ocrGuid_t CgEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]
 
 	//ocrDbDestroy(ap);
 
-	//EdtI through EdtK calculates r_new = r_old - alpha * A * p_old
+	//EdtI through EdtJ calculates r_new = r_old - alpha * A * p_old
+	//Note how A * p_old is reused from before
 
-	//A * p_old
-	ocrGuid_t Ap;
+	//alpha * A * p_old
+	ocrGuid_t aAp;
 	ocrGuid_t edtI;
-	edtParams[0] = A_rows;
-	edtParams[1] = A_columns;
-	edtParams[2] = X_old_rows;
-	edtParams[3] = X_old_columns;
-	ocrEdtCreate(&edtI, productEdtTemplate, EDT_PARAM_DEF, edtParams, EDT_PARAM_DEF,
-		NULL, EDT_PROP_NONE, NULL_GUID, &Ap);
+	edtParams[0] = X_old_rows;
+	edtParams[1] = X_old_columns;
+	ocrEdtCreate(&edtI, scaleEdtTemplate, EDT_PARAM_DEF, edtParams, EDT_PARAM_DEF,
+		NULL, EDT_PROP_NONE, NULL_GUID, &aAp);
 #ifdef DEBUG_MESSAGES
 	cout << "k = " << k << ". Created Edt: edtI" << endl;
 #endif
 
-	//alpha * A * p_old
-	ocrGuid_t aAp;
+	//r_new = r_old - alpha * A * p_old
+	ocrGuid_t r_new;
 	ocrGuid_t edtJ;
 	edtParams[0] = X_old_rows;
 	edtParams[1] = X_old_columns;
-	ocrEdtCreate(&edtJ, scaleEdtTemplate, EDT_PARAM_DEF, edtParams, EDT_PARAM_DEF,
-		NULL, EDT_PROP_NONE, NULL_GUID, &aAp);
-#ifdef DEBUG_MESSAGES
-	cout << "k = " << k << ". Created Edt: edtJ" << endl;
-#endif
-
-	//r_new = r_old - alpha * A * p_old
-	ocrGuid_t r_new;
-	ocrGuid_t edtK;
-	edtParams[0] = X_old_rows;
-	edtParams[1] = X_old_columns;
-	ocrEdtCreate(&edtK, subtractEdtTemplate, EDT_PARAM_DEF, edtParams, EDT_PARAM_DEF,
+	ocrEdtCreate(&edtJ, subtractEdtTemplate, EDT_PARAM_DEF, edtParams, EDT_PARAM_DEF,
 		NULL, EDT_PROP_NONE, NULL_GUID, &r_new);
 #ifdef DEBUG_MESSAGES
-	cout << "k = " << k << ". Created Edt: edtK" << endl;
+	cout << "k = " << k << ". Created Edt: edtJ" << endl;
 #endif
 
 	//ocrDbDestroy(aA);
 	//ocrDbDestroy(aAp);
 
-	//EdtL through EdtN calculates beta = (rT_new * r_new) / (rT_old * r_old)
+	//EdtK through EdtO calculates beta = (rT_new * r_new) / (rT_old * r_old)
 	//Note how rT_old * r_old is reused from before
 
 	//rT_new
 	ocrGuid_t rT_new;
-	ocrGuid_t edtL;
+	ocrGuid_t edtK;
 	edtParams[0] = X_old_rows;
 	edtParams[1] = X_old_columns;
-	ocrEdtCreate(&edtL, transposeEdtTemplate, EDT_PARAM_DEF, edtParams, EDT_PARAM_DEF,
+	ocrEdtCreate(&edtK, transposeEdtTemplate, EDT_PARAM_DEF, edtParams, EDT_PARAM_DEF,
 		NULL, EDT_PROP_NONE, NULL_GUID, &rT_new);
 #ifdef DEBUG_MESSAGES
-	cout << "k = " << k << ". Created Edt: edtL" << endl;
+	cout << "k = " << k << ". Created Edt: edtK" << endl;
 #endif
 
 	//rT_new * r_new
 	ocrGuid_t rT_newr;
-	ocrGuid_t edtM;
+	ocrGuid_t edtL;
 	edtParams[0] = X_old_columns;
 	edtParams[1] = X_old_rows;
 	edtParams[2] = X_old_rows;
 	edtParams[3] = X_old_columns;
-	ocrEdtCreate(&edtM, productEdtTemplate, EDT_PARAM_DEF, edtParams, EDT_PARAM_DEF,
+	ocrEdtCreate(&edtL, productEdtTemplate, EDT_PARAM_DEF, edtParams, EDT_PARAM_DEF,
 		NULL, EDT_PROP_NONE, NULL_GUID, &rT_newr);
 #ifdef DEBUG_MESSAGES
-	cout << "k = " << k << ". Created Edt: edtM" << endl;
+	cout << "k = " << k << ". Created Edt: edtL" << endl;
 #endif
 
 	//beta = (rT_new * r_new) / (rT_old * r_old)
 	ocrGuid_t beta;
-	ocrGuid_t edtN;
-	ocrEdtCreate(&edtN, divideEdtTemplate, EDT_PARAM_DEF, NULL, EDT_PARAM_DEF,
+	ocrGuid_t edtM;
+	ocrEdtCreate(&edtM, divideEdtTemplate, EDT_PARAM_DEF, NULL, EDT_PARAM_DEF,
 		NULL, EDT_PROP_NONE, NULL_GUID, &beta);
 #ifdef DEBUG_MESSAGES
-	cout << "k = " << k << ". Created Edt: edtN" << endl;
+	cout << "k = " << k << ". Created Edt: edtM" << endl;
 #endif
 
 	//ocrDbDestroy(rT_new);
@@ -420,24 +408,24 @@ extern "C" ocrGuid_t CgEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]
 
 	//beta * p_old
 	ocrGuid_t bp;
-	ocrGuid_t edtO;
+	ocrGuid_t edtN;
 	edtParams[0] = X_old_rows;
 	edtParams[1] = X_old_columns;
-	ocrEdtCreate(&edtO, scaleEdtTemplate, EDT_PARAM_DEF, edtParams, EDT_PARAM_DEF,
+	ocrEdtCreate(&edtN, scaleEdtTemplate, EDT_PARAM_DEF, edtParams, EDT_PARAM_DEF,
 		NULL, EDT_PROP_NONE, NULL_GUID, &bp);
 #ifdef DEBUG_MESSAGES
-	cout << "k = " << k << ". Created Edt: edtO" << endl;
+	cout << "k = " << k << ". Created Edt: edtN" << endl;
 #endif
 
 	//p_new = r_new + beta * p_old
 	ocrGuid_t p_new;
-	ocrGuid_t edtP;
+	ocrGuid_t edtO;
 	edtParams[0] = X_old_rows;
 	edtParams[1] = X_old_columns;
-	ocrEdtCreate(&edtP, addEdtTemplate, EDT_PARAM_DEF, edtParams, EDT_PARAM_DEF,
+	ocrEdtCreate(&edtO, addEdtTemplate, EDT_PARAM_DEF, edtParams, EDT_PARAM_DEF,
 		NULL, EDT_PROP_NONE, NULL_GUID, &p_new);
 #ifdef DEBUG_MESSAGES
-	cout << "k = " << k << ". Created Edt: edtP" << endl;
+	cout << "k = " << k << ". Created Edt: edtO" << endl;
 #endif
 
 	//ocrDbDestroy(bp);
@@ -492,49 +480,43 @@ extern "C" ocrGuid_t CgEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]
 	cout << "k = " << k << ". Added dependencies: CgEdt" << endl;
 #endif
 
-	ocrAddDependence(r_new, edtP, 0, DB_MODE_RO);
-	ocrAddDependence(bp, edtP, 1, DB_MODE_RO);
-#ifdef DEBUG_MESSAGES
-	cout << "k = " << k << ". Added dependencies: edtP" << endl;
-#endif
-
-	ocrAddDependence(p_old, edtO, 0, DB_MODE_RO);
-	ocrAddDependence(beta, edtO, 1, DB_MODE_RO);
+	ocrAddDependence(r_new, edtO, 0, DB_MODE_RO);
+	ocrAddDependence(bp, edtO, 1, DB_MODE_RO);
 #ifdef DEBUG_MESSAGES
 	cout << "k = " << k << ". Added dependencies: edtO" << endl;
 #endif
 
-	ocrAddDependence(rT_newr, edtN, 0, DB_MODE_RO);
-	ocrAddDependence(rTr, edtN, 1, DB_MODE_RO);
+	ocrAddDependence(p_old, edtN, 0, DB_MODE_RO);
+	ocrAddDependence(beta, edtN, 1, DB_MODE_RO);
 #ifdef DEBUG_MESSAGES
 	cout << "k = " << k << ". Added dependencies: edtN" << endl;
 #endif
 
-	ocrAddDependence(rT_new, edtM, 0, DB_MODE_RO);
-	ocrAddDependence(r_new, edtM, 1, DB_MODE_RO);
+	ocrAddDependence(rT_newr, edtM, 0, DB_MODE_RO);
+	ocrAddDependence(rTr, edtM, 1, DB_MODE_RO);
 #ifdef DEBUG_MESSAGES
 	cout << "k = " << k << ". Added dependencies: edtM" << endl;
 #endif
 
-	ocrAddDependence(r_new, edtL, 0, DB_MODE_RO);
+	ocrAddDependence(rT_new, edtL, 0, DB_MODE_RO);
+	ocrAddDependence(r_new, edtL, 1, DB_MODE_RO);
 #ifdef DEBUG_MESSAGES
 	cout << "k = " << k << ". Added dependencies: edtL" << endl;
 #endif
 
-	ocrAddDependence(r_old, edtK, 0, DB_MODE_RO);
-	ocrAddDependence(aAp, edtK, 1, DB_MODE_RO);
+	ocrAddDependence(r_new, edtK, 0, DB_MODE_RO);
 #ifdef DEBUG_MESSAGES
 	cout << "k = " << k << ". Added dependencies: edtK" << endl;
 #endif
 
-	ocrAddDependence(Ap, edtJ, 0, DB_MODE_RO);
-	ocrAddDependence(alpha, edtJ, 1, DB_MODE_RO);
+	ocrAddDependence(r_old, edtJ, 0, DB_MODE_RO);
+	ocrAddDependence(aAp, edtJ, 1, DB_MODE_RO);
 #ifdef DEBUG_MESSAGES
 	cout << "k = " << k << ". Added dependencies: edtJ" << endl;
 #endif
 
-	ocrAddDependence(A, edtI, 0, DB_MODE_RO);
-	ocrAddDependence(p_old, edtI, 1, DB_MODE_RO);
+	ocrAddDependence(Ap, edtI, 0, DB_MODE_RO);
+	ocrAddDependence(alpha, edtI, 1, DB_MODE_RO);
 #ifdef DEBUG_MESSAGES
 	cout << "k = " << k << ". Added dependencies: edtI" << endl;
 #endif
@@ -557,14 +539,14 @@ extern "C" ocrGuid_t CgEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]
 	cout << "k = " << k << ". Added dependencies: edtF" << endl;
 #endif
 
-	ocrAddDependence(pTA, edtE, 0, DB_MODE_RO);
-	ocrAddDependence(p_old, edtE, 1, DB_MODE_RO);
+	ocrAddDependence(pT, edtE, 0, DB_MODE_RO);
+	ocrAddDependence(Ap, edtE, 1, DB_MODE_RO);
 #ifdef DEBUG_MESSAGES
 	cout << "k = " << k << ". Added dependencies: edtE" << endl;
 #endif
 
-	ocrAddDependence(pT, edtD, 0, DB_MODE_RO);
-	ocrAddDependence(A, edtD, 1, DB_MODE_RO);
+	ocrAddDependence(A, edtD, 0, DB_MODE_RO);
+	ocrAddDependence(p_old, edtD, 1, DB_MODE_RO);
 #ifdef DEBUG_MESSAGES
 	cout << "k = " << k << ". Added dependencies: edtD" << endl;
 #endif
