@@ -1,11 +1,12 @@
 *****************************
 ** Current Status of Files **
 *****************************
+
 generate_results.py:
-	-- Not implemented
+	-- Initial working version for generating simple (x, y) data for gnuplot
 
 options.h:
-	-- Support for parallel_stream.c and serial_stream.c
+	-- Support for all OCR stream versions
 
 parallel_db_edt_breakdown_stream.c:
 	-- Full getopt is supported
@@ -22,6 +23,16 @@ serial_edt_breakdown_stream.c:
 serial_stream.c
 	-- Full getopt is supported
 
+********************
+** Pre-requisites **
+********************
+
+Gnu-plot 
+To create graphs in generate_results.py 
+
+Python 2.7.5:
+To run generate_results.py
+
 ************************
 ** Build Instructions **
 ************************
@@ -36,16 +47,20 @@ To build specific file:
 ***********************
 ** Overview of Files **
 ***********************
+
 generate_results.py:
 	-- Generates results and graphs for serial and parallel stream versions
+
 
 options.h:
 	-- Contains getopt parsing for *_stream.c files
 
+
 parallel_db_edt_breakdown_stream.c:
-	-- Combines parall_db_breakdown_stream.c and serial_edt_breakdown_stream.chunk.
+	-- Combines parall_db_breakdown_stream.c and serial_edt_breakdown_stream.c.
 	-- Datablocks are "broken down" by "split" number of "chunk"s.
 	-- Vector operations are broken apart into separate EDTs.
+
 
 parallel_db_breakdown_stream.c:
 	-- Represents a datablock of size "db_size" by "split" number of "chunk"s
@@ -68,16 +83,19 @@ parallel_stream.c:
 	   with the difference being that there will be "split" instances of pipelineEDT each
 	   operating on db_size / split.
 
+
 serial_edt_breakdown_stream.c:
 	-- Breaks apart vector operations (COPY, SCALE, ADD, TRIAD) into 
 	   separate EDTs
+
 
 serial_stream.c:
 	-- Serial implementation of stream in OCR.
 	-- Vector operations are run in a single EDT (iterEdt) in the following order: 
 	   COPY --> SCALE --> ADD --> TRIAD
 
-- e | --export CSV files:
+
+- e | --export files:
 	Timing data is reported in the following format:
 	Tria1 1, Trial 2, Trial 3, ... , Trial N, Average of N Trials
 

@@ -167,7 +167,7 @@ ocrGuid_t resultsEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 				   "Expected b: %f, Actual b: %f\n"
 				   "Expected c: %f, Actual c: %f\n", split* ai, a, split * bi, b, split * ci, c);
 	}
-	
+
 	ocrShutdown();
 	return NULL_GUID;
 }

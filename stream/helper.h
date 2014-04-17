@@ -30,8 +30,8 @@ void export_csv(char * name, u64 db_size, u64 iterations, STREAM_TYPE * trials, 
 
 	u64 i;
 	for (i = 0; i < iterations; i++) 
-		fprintf(f, "%llu %f\n", db_size, trials[i]);
-	//fprintf(f, "%f\n", avg);
+		fprintf(f, "%llu %f, ", db_size, trials[i]);
+	fprintf(f, "%f\n", avg);
 
 	fclose(f);
 	return;
