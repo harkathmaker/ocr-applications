@@ -17,7 +17,7 @@ endif
 
 OCR_RUN_FLAGS=-ocr:cfg ${OCR_CONFIG}
 
-all-test: compile run
+all-test: compile_pp run
 
 compile:
 	$(CLANG) -emit-llvm $(CFLAGS) timer.cpp main.cpp matrix.cpp
@@ -29,7 +29,7 @@ compile_pp:
 
 run:
 	octave ./cgmatrix.m
-	./$(PROG).exe $(OCR_RUN_FLAGS)
+	./$(PROG).exe $(OCR_RUN_FLAGS) cg.mat 100 20
 
 clean:
 	-rm -Rf *.o *.bc $(PROG).exe
