@@ -222,7 +222,7 @@ ocrGuid_t resultsEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 			ci = ai + bi;
 			ai = bi + scalar * ci;
 		}
-		
+
 		PRINTF("After %d Iterations:\n", iterations);
 		if ((split * ai - a + split * bi - b + split * ci - c) == 0)
 			PRINTF("No differences between expected and actual\n");
