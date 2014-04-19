@@ -116,6 +116,7 @@ ocrGuid_t resultsEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 	u64 iterations = paramv[1];
 	u64 split = paramv[2];
 	int verify = (int) paramv[3];
+	STREAM_TYPE scalar = (STREAM_TYPE) paramv[4];
 	int verbose = (int) paramv[5];
 	STREAM_TYPE * data = (STREAM_TYPE *) depv[0].ptr;
 	STREAM_TYPE totalsum, timingsum[iterations], avg;
@@ -135,7 +136,7 @@ ocrGuid_t resultsEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 	PRINTF("AVERAGE Time Per Trial: %f s\n", avg);
 
 	if (strcmp((char *) depv[1].ptr, "") != 0) 
-		export_csv((char *) depv[1].ptr, db_size, iterations, timingsum, avg);
+		export_csv((char *) depv[1].ptr, db_size, iterations, split, scalar, timingsum, avg);
 
 	if (verify) {
 		STREAM_TYPE a = 0, ai, b = 0, bi, c = 0, ci;
