@@ -16,7 +16,7 @@ extern "C" {
 #include <pthread.h>
 }
 
-//#define DEBUG_MESSAGES
+#define DEBUG_MESSAGES
 
 #ifndef __OCR__
 #define __OCR__
@@ -27,14 +27,19 @@ extern "C" {
 #include "matrix.h"
 #include "timer.h"
 
-//Amount of iterations of the algorithm on a given problem
-unsigned int K_ITERATIONS = 100;
+
 //Matrix size n by n
 unsigned int MATRIX_N = 500;
+//Amount of iterations of the algorithm on a given problem
+unsigned int K_ITERATIONS = MATRIX_N * 2;
 //Whether to treat A as a sparse matrix
-bool isSparse = true;
+bool isSparse = false;
 //Amount of elements in sparse matrix A
 int elementAmount = 0;
+//Whether the residual is low enough to trust the current iterated solution
+bool isResidualLow = false;
+//If all the residuals are below this amount, the current iterated solution is returned
+double RESIDUAL_LIMIT = 1e-10;
 
 using namespace std;
 
@@ -154,6 +159,31 @@ extern "C" ocrGuid_t divideEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t de
 	return dataBlock;
 }
 
+//Checks if the residuals are low enough to trust the current iterated solution
+//and sets isResidualLow to true if it is. Satisfies residualEvent on completion.
+//Parameters: R_rows, residualEvent
+//Dependencies: R_db (double)
+//Output: None
+
+extern "C" ocrGuid_t residualEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[])
+{
+	double* r = (double*) depv[0].ptr;
+	int R_rows = (int) paramv[0];
+	bool tempFlag = true;
+#ifdef DEBUG_MESSAGES
+	cout << "residualEdt()" << endl;
+#endif
+	for (int i = 0; i < R_rows; i++) {
+		if (r[i] > RESIDUAL_LIMIT) {
+			ocrEventSatisfy((ocrGuid_t)paramv[1], NULL_GUID);
+			return NULL_GUID;
+		}
+	}
+	isResidualLow = true;
+	ocrEventSatisfy((ocrGuid_t)paramv[1], NULL_GUID);
+	return NULL_GUID;
+}
+
 //Prints the contents of a matrix datablock and stops a given timer for benchmarking purposes.
 //Parameters: x_rows, t1.sec, t1.usec
 //Dependencies: A_db
@@ -222,7 +252,7 @@ extern "C" ocrGuid_t CgEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]
 #endif
 	//If the algorithm is executed K times on the conjugate gradient
 	//problem, return the current result x
-	if (k == K_ITERATIONS) {
+	if ((k == K_ITERATIONS) || (isResidualLow == true)){
 		ocrEventSatisfy(result, x_old);
 #ifdef DEBUG_MESSAGES
 		cout << "k = " << k << ". Satisfied result of CgEdt" << endl;
@@ -236,6 +266,9 @@ extern "C" ocrGuid_t CgEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]
 	ocrGuid_t scaleEdtTemplate;
 	ocrEdtTemplateCreate(&scaleEdtTemplate, scaleEdt, 2, 2);
 
+	ocrGuid_t scaleEdtTemplate_N;
+	ocrEdtTemplateCreate(&scaleEdtTemplate_N, scaleEdt, 2, 3);
+
 	ocrGuid_t productEdtTemplate;
 	ocrEdtTemplateCreate(&productEdtTemplate, productEdt, 4, 2);
 
@@ -245,6 +278,9 @@ extern "C" ocrGuid_t CgEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]
 	ocrGuid_t transposeEdtTemplate;
 	ocrEdtTemplateCreate(&transposeEdtTemplate, transposeEdt, 2, 1);
 
+	ocrGuid_t transposeEdtTemplate_K;
+	ocrEdtTemplateCreate(&transposeEdtTemplate_K, transposeEdt, 2, 2);
+
 	ocrGuid_t addEdtTemplate;
 	ocrEdtTemplateCreate(&addEdtTemplate, addEdt, 2, 2);
 
@@ -253,6 +289,9 @@ extern "C" ocrGuid_t CgEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]
 
 	ocrGuid_t divideEdtTemplate;
 	ocrEdtTemplateCreate(&divideEdtTemplate, divideEdt, 0, 2);
+
+	ocrGuid_t residualEdtTemplate;
+	ocrEdtTemplateCreate(&residualEdtTemplate, residualEdt, 2, 1);
 
 #ifdef DEBUG_MESSAGES
 	cout << "k = " << k << ". Created Edt templates: scale, product, transpose, add, subtract, divide" << endl;
@@ -381,6 +420,9 @@ extern "C" ocrGuid_t CgEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]
 	cout << "k = " << k << ". Created Edt: edtI" << endl;
 #endif
 
+	//ocrDbDestroy(aA);
+	//ocrDbDestroy(aAp);
+
 	//r_new = r_old - alpha * A * p_old
 	ocrGuid_t r_new;
 	ocrGuid_t edtJ;
@@ -392,10 +434,20 @@ extern "C" ocrGuid_t CgEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]
 	cout << "k = " << k << ". Created Edt: edtJ" << endl;
 #endif
 
-	//ocrDbDestroy(aA);
-	//ocrDbDestroy(aAp);
+	//Residual check
+	ocrGuid_t residualEvent;
+	ocrEventCreate(&residualEvent, OCR_EVENT_ONCE_T, false);
 
-	//EdtK through EdtO calculates beta = (rT_new * r_new) / (rT_old * r_old)
+	ocrGuid_t edtResidual;
+	edtParams[0] = X_old_rows;
+	edtParams[1] = (ocrGuid_t)residualEvent;
+	ocrEdtCreate(&edtResidual, residualEdtTemplate, EDT_PARAM_DEF, edtParams, EDT_PARAM_DEF,
+		NULL, EDT_PROP_NONE, NULL_GUID, NULL);
+#ifdef DEBUG_MESSAGES
+	cout << "k = " << k << ". Created Edt: edtResidual" << endl;
+#endif
+
+	//EdtK through EdtM calculates beta = (rT_new * r_new) / (rT_old * r_old)
 	//Note how rT_old * r_old is reused from before
 
 	//rT_new
@@ -403,7 +455,7 @@ extern "C" ocrGuid_t CgEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]
 	ocrGuid_t edtK;
 	edtParams[0] = X_old_rows;
 	edtParams[1] = X_old_columns;
-	ocrEdtCreate(&edtK, transposeEdtTemplate, EDT_PARAM_DEF, edtParams, EDT_PARAM_DEF,
+	ocrEdtCreate(&edtK, transposeEdtTemplate_K, EDT_PARAM_DEF, edtParams, EDT_PARAM_DEF,
 		NULL, EDT_PROP_NONE, NULL_GUID, &rT_new);
 #ifdef DEBUG_MESSAGES
 	cout << "k = " << k << ". Created Edt: edtK" << endl;
@@ -435,14 +487,14 @@ extern "C" ocrGuid_t CgEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]
 	//ocrDbDestroy(rT_newr);
 	//ocrDbDestroy(rTr);
 
-	//EdtO through EdtP calculates p_new = r_new + beta * p_old
+	//EdtN through EdtO calculates p_new = r_new + beta * p_old
 
 	//beta * p_old
 	ocrGuid_t bp;
 	ocrGuid_t edtN;
 	edtParams[0] = X_old_rows;
 	edtParams[1] = X_old_columns;
-	ocrEdtCreate(&edtN, scaleEdtTemplate, EDT_PARAM_DEF, edtParams, EDT_PARAM_DEF,
+	ocrEdtCreate(&edtN, scaleEdtTemplate_N, EDT_PARAM_DEF, edtParams, EDT_PARAM_DEF,
 		NULL, EDT_PROP_NONE, NULL_GUID, &bp);
 #ifdef DEBUG_MESSAGES
 	cout << "k = " << k << ". Created Edt: edtN" << endl;
@@ -524,6 +576,7 @@ extern "C" ocrGuid_t CgEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]
 
 	ocrAddDependence(p_old, edtN, 0, DB_MODE_RO);
 	ocrAddDependence(beta, edtN, 1, DB_MODE_RO);
+	ocrAddDependence(residualEvent, edtN, 2, DB_MODE_RO);
 #ifdef DEBUG_MESSAGES
 	cout << "k = " << k << ". Added dependencies: edtN" << endl;
 #endif
@@ -541,8 +594,14 @@ extern "C" ocrGuid_t CgEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]
 #endif
 
 	ocrAddDependence(r_new, edtK, 0, DB_MODE_RO);
+	ocrAddDependence(residualEvent, edtK, 1, DB_MODE_RO);
 #ifdef DEBUG_MESSAGES
 	cout << "k = " << k << ". Added dependencies: edtK" << endl;
+#endif
+
+	ocrAddDependence(r_new, edtResidual, 0, DB_MODE_RO);
+#ifdef DEBUG_MESSAGES
+	cout << "k = " << k << ". Added dependencies: edtResidual" << endl;
 #endif
 
 	ocrAddDependence(r_old, edtJ, 0, DB_MODE_RO);
@@ -926,9 +985,9 @@ extern "C" ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv
 	u64 argc = getArgc(depv[0].ptr);
 	int i;
 	if(argc < 3) {
-		cout << "Argument 1: Matrix filename (filename.m)" << endl;
-		cout << "Argument 2: Matrix size (in rows)" << endl;
-		cout << "Argument 3: Algorithm iterations" << endl;
+		cout << "Argument 1: Whether A is to be treated as a sparse matrix. 0 is False, Non-zero is True." << endl;
+		cout << "Argument 2: Matrix filename (filename.m)" << endl;
+		cout << "Argument 3: Matrix size (in rows)" << endl;
 		ocrShutdown();
 		return NULL_GUID;
 	}
@@ -939,12 +998,16 @@ extern "C" ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv
 	}
 #endif
 
-	MATRIX_N = strtol(getArgv(depv[0].ptr,2),NULL,10);
-	K_ITERATIONS = strtol(getArgv(depv[0].ptr,3),NULL,10);
+	int foo = strtol(getArgv(depv[0].ptr,1),NULL,10);
+	if (foo == 0)
+		isSparse = false;
+	else
+		isSparse = true;
+	MATRIX_N = strtol(getArgv(depv[0].ptr,3),NULL,10);
 
 	//Reads data from a data file to matrix A
 	Matrix A(MATRIX_N, MATRIX_N);
-	if (readMatrixFromFile(getArgv(depv[0].ptr,1), A) == -1) {
+	if (readMatrixFromFile(getArgv(depv[0].ptr,2), A) == -1) {
 		cout << "Error opening matrix file" << endl;
 		ocrShutdown();
 		return NULL_GUID;
