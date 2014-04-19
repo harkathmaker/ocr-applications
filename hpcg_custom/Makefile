@@ -28,8 +28,8 @@ compile_pp:
 	g++ -g -o $(PROG).exe timer.o main.o matrix.o $(OCR_FLAGS)
 
 run:
-	octave ./cgmatrix.m
-	./$(PROG).exe $(OCR_RUN_FLAGS) cg.mat 100 20
+#	octave ./cgmatrix.m
+	./$(PROG).exe $(OCR_RUN_FLAGS) 0 cg500_s.mat 500
 
 clean:
 	-rm -Rf *.o *.bc $(PROG).exe
