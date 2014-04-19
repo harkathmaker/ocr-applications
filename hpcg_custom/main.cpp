@@ -10,6 +10,7 @@
 #include <cmath>
 #include <time.h>
 #include <cstdlib>
+#include <vector>
 
 extern "C" {
 #include <pthread.h>
@@ -30,6 +31,10 @@ extern "C" {
 unsigned int K_ITERATIONS = 100;
 //Matrix size n by n
 unsigned int MATRIX_N = 500;
+//Whether to treat A as a sparse matrix
+bool isSparse = true;
+//Amount of elements in sparse matrix A
+int elementAmount = 0;
 
 using namespace std;
 
@@ -42,7 +47,7 @@ double fRand(double fMin, double fMax)
 
 //Multiplies datablock A by a constant value and returns a new datablock R as the result
 //Parameters: A_rows, A_columns
-//Dependencies: A_event, scalar_event (double)
+//Dependencies: A_db, scalar_event (double)
 //Output: result
 
 extern "C" ocrGuid_t scaleEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[])
@@ -58,7 +63,7 @@ extern "C" ocrGuid_t scaleEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t dep
 
 //Multiplies datablock A by datablock B and returns a new datablock R as the result
 //Parameters: A_rows, A_columns, B_rows, B_columns
-//Dependencies: A_event, B_event
+//Dependencies: A_db, B_db
 //Output: result
 
 extern "C" ocrGuid_t productEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[])
@@ -71,9 +76,25 @@ extern "C" ocrGuid_t productEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t d
 	return dataBlock;
 }
 
+//Multiplies sparse datablock matrix A by datablock B and returns a new datablock R as the result
+//Parameters: A_rows, A_columns, B_rows, B_columns
+//Dependencies: A_db, A_elementList, B_db
+//Output: result
+
+extern "C" ocrGuid_t productEdt_sparse(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[])
+{
+	ocrGuid_t dataBlock = matrixProduct_sparse((double*) depv[0].ptr, (unsigned int*) depv[1].ptr,
+                                               elementAmount, (int)paramv[0], (int)paramv[1],
+                                               (double*) depv[2].ptr, (int)paramv[2], (int)paramv[3]);
+#ifdef DEBUG_MESSAGES
+	cout << "productEdt_sparse()" << endl;
+#endif
+	return dataBlock;
+}
+
 //Transposes datablock A and returns a new datablock R as the result
 //Parameters: A_rows, A_columns
-//Dependencies: A_event
+//Dependencies: A_db
 //Output: result
 
 extern "C" ocrGuid_t transposeEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[])
@@ -87,7 +108,7 @@ extern "C" ocrGuid_t transposeEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t
 
 //Adds datablock A by datablock B and returns a new datablock R as the result
 //Parameters: A_rows, A_columns
-//Dependencies: A_event, B_event (A and B need same rows/columns)
+//Dependencies: A_db, B_db (A and B need same rows/columns)
 //Output: result
 
 extern "C" ocrGuid_t addEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[])
@@ -101,7 +122,7 @@ extern "C" ocrGuid_t addEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[
 
 //Subtracts datablock A by datablock B and returns a new datablock R as the result
 //Parameters: A_rows, A_columns
-//Dependencies: A_event, B_event (A and B need same rows/columns)
+//Dependencies: A_db, B_db (A and B need same rows/columns)
 //Output: result
 
 extern "C" ocrGuid_t subtractEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[])
@@ -116,7 +137,7 @@ extern "C" ocrGuid_t subtractEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t 
 
 //Divides datablock A by datablock B and returns a new datablock R as the result
 //Parameters: None
-//Dependencies: A_event (double), B_event (double)
+//Dependencies: A_db (double), B_db (double)
 //Output: result
 
 extern "C" ocrGuid_t divideEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[])
@@ -135,7 +156,7 @@ extern "C" ocrGuid_t divideEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t de
 
 //Prints the contents of a matrix datablock and stops a given timer for benchmarking purposes.
 //Parameters: x_rows, t1.sec, t1.usec
-//Dependencies: A_event
+//Dependencies: A_db
 //Output: NULL_GUID
 //Not thread safe
 
@@ -170,7 +191,7 @@ extern "C" ocrGuid_t printEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t dep
 
 //Performs the conjugate gradient algorithm with matrix A, x, and B
 //Parameters: A_rows, A_columns, X_old_rows, X_old_columns, k, doneEvent
-//Dependencies: A_db, B_db, X_old_db, P_old_db, R_old_db
+//Dependencies: A_db, B_db, X_old_db, P_old_db, R_old_db, elementList (if A_db is sparse)
 //Output: Guid data block with result of x_new after K_ITERATIONS
 
 extern "C" ocrGuid_t CgEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[])
@@ -193,6 +214,9 @@ extern "C" ocrGuid_t CgEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]
 	//p0 = r0
 	ocrGuid_t p_old = depv[3].guid;
 	ocrGuid_t r_old = depv[4].guid;
+	ocrGuid_t elementList;
+	if (isSparse == true)
+		elementList = depv[5].guid;
 #ifdef DEBUG_MESSAGES
 	cout << "k = " << k << ". Retrieved dependencies: CgEdt" << endl;
 #endif
@@ -214,6 +238,9 @@ extern "C" ocrGuid_t CgEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]
 
 	ocrGuid_t productEdtTemplate;
 	ocrEdtTemplateCreate(&productEdtTemplate, productEdt, 4, 2);
+
+	ocrGuid_t productEdtSparseTemplate;
+	ocrEdtTemplateCreate(&productEdtSparseTemplate, productEdt_sparse, 4, 3);
 
 	ocrGuid_t transposeEdtTemplate;
 	ocrEdtTemplateCreate(&transposeEdtTemplate, transposeEdt, 2, 1);
@@ -277,8 +304,12 @@ extern "C" ocrGuid_t CgEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]
 	edtParams[1] = A_columns;
 	edtParams[2] = X_old_rows;
 	edtParams[3] = X_old_columns;
-	ocrEdtCreate(&edtD, productEdtTemplate, EDT_PARAM_DEF, edtParams, EDT_PARAM_DEF,
-		NULL, EDT_PROP_NONE, NULL_GUID, &Ap);
+	if (isSparse == false)
+		ocrEdtCreate(&edtD, productEdtTemplate, EDT_PARAM_DEF, edtParams, EDT_PARAM_DEF,
+			NULL, EDT_PROP_NONE, NULL_GUID, &Ap);
+	else
+		ocrEdtCreate(&edtD, productEdtSparseTemplate, EDT_PARAM_DEF, edtParams, EDT_PARAM_DEF,
+			NULL, EDT_PROP_NONE, NULL_GUID, &Ap);
 #ifdef DEBUG_MESSAGES
 	cout << "k = " << k << ". Created Edt: edtD" << endl;
 #endif
@@ -442,7 +473,10 @@ extern "C" ocrGuid_t CgEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]
 
 	//CgEdt template
 	ocrGuid_t CgEdtTemplate;
-	ocrEdtTemplateCreate(&CgEdtTemplate, CgEdt, 6, 5);
+	if (isSparse == false)
+		ocrEdtTemplateCreate(&CgEdtTemplate, CgEdt, 6, 5);
+	else
+		ocrEdtTemplateCreate(&CgEdtTemplate, CgEdt, 6, 6);
 #ifdef DEBUG_MESSAGES
 	cout << "k = " << k << ". Created Edt template: CgEdt" << endl;
 #endif
@@ -476,6 +510,8 @@ extern "C" ocrGuid_t CgEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]
 	ocrAddDependence(x_new, myEdt, 2, DB_MODE_RO);
 	ocrAddDependence(p_new, myEdt, 3, DB_MODE_RO);
 	ocrAddDependence(r_new, myEdt, 4, DB_MODE_RO);
+	if (isSparse == true)
+		ocrAddDependence(elementList, myEdt, 5, DB_MODE_RO);
 #ifdef DEBUG_MESSAGES
 	cout << "k = " << k << ". Added dependencies: CgEdt" << endl;
 #endif
@@ -546,7 +582,13 @@ extern "C" ocrGuid_t CgEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]
 #endif
 
 	ocrAddDependence(A, edtD, 0, DB_MODE_RO);
-	ocrAddDependence(p_old, edtD, 1, DB_MODE_RO);
+	if (isSparse == false) {
+		ocrAddDependence(p_old, edtD, 1, DB_MODE_RO);
+	} else {
+		ocrAddDependence(elementList, edtD, 1, DB_MODE_RO);
+		ocrAddDependence(p_old, edtD, 2, DB_MODE_RO);
+	}
+
 #ifdef DEBUG_MESSAGES
 	cout << "k = " << k << ". Added dependencies: edtD" << endl;
 #endif
@@ -745,6 +787,118 @@ void conjugateGradient_OCR(Matrix *A_m, Matrix *x_m, Matrix *B_m, ocrGuid_t resu
 #endif
 }
 
+//Sets up the conjugate gradient algorithm Edt for matrices A, x, and B
+void conjugateGradient_OCR_sparse(ocrGuid_t A, ocrGuid_t elementList, Matrix *x_m, Matrix *B_m, ocrGuid_t result)
+{
+	//Copies data from matrices x, B to their respective datablocks
+	ocrGuid_t B;
+	ocrGuid_t x;
+	ocrEventCreate(&B, OCR_EVENT_STICKY_T, true);
+	ocrEventCreate(&x, OCR_EVENT_STICKY_T, true);
+	ocrEventSatisfy(B, B_m->getDataBlock());
+	ocrEventSatisfy(x, x_m->getDataBlock());
+#ifdef DEBUG_MESSAGES
+	cout << "Init. Created Guids: B, x" << endl;
+#endif
+
+	//Edt templates
+	ocrGuid_t productEdtSparseTemplate;
+	ocrEdtTemplateCreate(&productEdtSparseTemplate, productEdt_sparse, 4, 3);
+
+	ocrGuid_t subtractEdtTemplate;
+	ocrEdtTemplateCreate(&subtractEdtTemplate, subtractEdt, 2, 2);
+
+#ifdef DEBUG_MESSAGES
+	cout << "Init. Created Edt templates: product, subtract" << endl;
+#endif
+
+	u64 edtParams[4];
+
+	//Ax
+	ocrGuid_t Ax;
+	ocrGuid_t edtA;
+	edtParams[0] = MATRIX_N; //A_rows
+	edtParams[1] = MATRIX_N; //A_columns
+	edtParams[2] = x_m->getRows();
+	edtParams[3] = x_m->getColumns();
+	ocrEdtCreate(&edtA, productEdtSparseTemplate, EDT_PARAM_DEF, edtParams, EDT_PARAM_DEF,
+		NULL, EDT_PROP_NONE, NULL_GUID, &Ax);
+#ifdef DEBUG_MESSAGES
+	cout << "Init. Created Edt: Ax" << endl;
+#endif
+
+	//residual (r0) = b - Ax0
+	ocrGuid_t r_old;
+	ocrGuid_t edtB;
+	edtParams[0] = B_m->getRows();
+	edtParams[1] = B_m->getColumns();
+	edtParams[2] = x_m->getRows();
+	edtParams[3] = x_m->getColumns();
+	ocrEdtCreate(&edtB, subtractEdtTemplate, EDT_PARAM_DEF, edtParams, EDT_PARAM_DEF,
+		NULL, EDT_PROP_NONE, NULL_GUID, &r_old);
+#ifdef DEBUG_MESSAGES
+	cout << "Init. Created Edt: r_old" << endl;
+#endif
+
+	//ocrDbDestroy(Ax);
+
+	int k = 0;
+
+	//ocrGuid_t p_old = r_old;
+
+	ocrGuid_t CgEdtTemplate;
+	ocrEdtTemplateCreate(&CgEdtTemplate, CgEdt, 6, 6);
+#ifdef DEBUG_MESSAGES
+	cout << "Init. Created Edt template: CgEdt" << endl;
+#endif
+
+	//Parameters for CgEdt
+	u64 nparamv[6];
+	nparamv[0] = result;
+	nparamv[1] = MATRIX_N; //A_rows
+	nparamv[2] = MATRIX_N; //A_columns
+	nparamv[3] = x_m->getRows();
+	nparamv[4] = x_m->getColumns();
+	nparamv[5] = k;
+
+#ifdef DEBUG_MESSAGES
+	cout << "Init. Initialized parameters: CgEdt" << endl;
+#endif
+
+	//Creates the main algorithm Edt for the conjugate gradient problem
+	ocrGuid_t myEdt;
+	//Satisfy with A, B, x, p_old, r_old, elementList
+	ocrEdtCreate(&myEdt, CgEdtTemplate, EDT_PARAM_DEF, nparamv, EDT_PARAM_DEF,
+		NULL, EDT_PROP_NONE, NULL_GUID, NULL);
+#ifdef DEBUG_MESSAGES
+	cout << "Init. Created Edt: CgEdt" << endl;
+#endif
+
+	//Add dependencies for CgEdt
+	ocrAddDependence(A, myEdt, 0, DB_MODE_RO);
+	ocrAddDependence(B, myEdt, 1, DB_MODE_RO);
+	ocrAddDependence(x, myEdt, 2, DB_MODE_RO);
+	ocrAddDependence(r_old, myEdt, 3, DB_MODE_RO); //p_old
+	ocrAddDependence(r_old, myEdt, 4, DB_MODE_RO);
+	ocrAddDependence(elementList, myEdt, 5, DB_MODE_RO);
+#ifdef DEBUG_MESSAGES
+	cout << "Init. Added dependencies: CgEdt" << endl;
+#endif
+
+	ocrAddDependence(B, edtB, 0, DB_MODE_RO);
+	ocrAddDependence(Ax, edtB, 1, DB_MODE_RO);
+#ifdef DEBUG_MESSAGES
+	cout << "Init. Added dependencies: edtB" << endl;
+#endif
+
+	ocrAddDependence(A, edtA, 0, DB_MODE_RO);
+	ocrAddDependence(elementList, edtA, 1, DB_MODE_RO);
+	ocrAddDependence(x, edtA, 2, DB_MODE_RO);
+#ifdef DEBUG_MESSAGES
+	cout << "Init. Added dependencies: edtA" << endl;
+#endif
+}
+
 //Reads a file containing data values and creates a matrix datablock from the data values
 int readMatrixFromFile(const char* fileName, Matrix &A)
 {
@@ -796,27 +950,41 @@ extern "C" ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv
 		return NULL_GUID;
 	}
 
+	//If matrix A is sparse, find non-zero elements in A and store their positions in an array
+	ocrGuid_t A_sparse;
+	ocrGuid_t A_sparseElementList;
+	if (isSparse == true) {
+		vector<unsigned int> tempPositions;
+		vector<double> tempMatrix;
+		for (int row = 0; row < MATRIX_N; row++) {
+			for (int column = 0; column < MATRIX_N; column++) {
+				double value = A.getValue(row, column);
+				if (value != 0.00000000f) {
+					tempPositions.push_back(row * MATRIX_N + column);
+					tempMatrix.push_back(value);
+				}
+			}
+		}
+		elementAmount = tempMatrix.size();
+		double *mat;
+		unsigned int *positions;
+		DBCREATE(&A_sparse, (void**) &mat, elementAmount * sizeof (double),
+		         DB_PROP_NONE, NULL_GUID, NO_ALLOC);
+		DBCREATE(&A_sparseElementList, (void**) &positions, elementAmount * sizeof (unsigned int),
+		         DB_PROP_NONE, NULL_GUID, NO_ALLOC);
+		for (int i = 0; i < elementAmount; i++) {
+			mat[i] = tempMatrix[i];
+			positions[i] = tempPositions[i];
+		}
+	}
+
 	//Creates matrix x and B with a guess of all zeroes for x and random values for b
 	Matrix x(MATRIX_N, 1);
 	Matrix B(MATRIX_N, 1);
 	for (int row = 0; row < MATRIX_N; row++) {
-		x.setValue(row, 0, 0.0f);
+		x.setValue(row, 0, 1.0f);
 		B.setValue(row, 0, fRand(-10.0f, 10.0f));
 	}
-
-	//timeval cgTime;
-	//tick(cgTime);
-	//cout << "Testing Conjugate Gradient..." << endl;
-	//Matrix *fishy = conjugateGradient(&A, &x, &B);
-
-	//cout << "Solution:" << endl;
-	//for (int i = 0; i < MATRIX_N; i++)
-	//	cout << fishy->getValue(i, 0) << " ";
-	//cout << endl;
-
-	//double cgTimeElapsed = tock(cgTime);
-
-	//cout << "Time to test Conjugate Gradient: " << cgTimeElapsed << " ms" << endl << endl;
 
 	//Starts benchmarking timer
 	timeval ocrCgTime;
@@ -825,7 +993,10 @@ extern "C" ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv
 	//Calls the conjugate gradient algorithm for OCR and stores the solutions in the result datablock
 	ocrGuid_t result;
 	ocrEventCreate(&result, OCR_EVENT_STICKY_T, true);
-	conjugateGradient_OCR(&A, &x, &B, result);
+	if (isSparse == false)
+		conjugateGradient_OCR(&A, &x, &B, result);
+	else
+		conjugateGradient_OCR_sparse(A_sparse, A_sparseElementList, &x, &B, result);
 
 	//Parameters for printEdt
 	u64 nparamv[3];

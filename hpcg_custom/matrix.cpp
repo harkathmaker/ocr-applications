@@ -6,6 +6,7 @@
  */
 
 #include "matrix.h"
+#include <iostream>
 
 using namespace std;
 
@@ -132,6 +133,33 @@ ocrGuid_t matrixProduct(double *A_mat, int A_rows, int A_columns, double *B_mat,
 			}
 		}
 	}
+	return dataBlock;
+}
+
+ocrGuid_t matrixProduct_sparse(double *A_mat, unsigned int *sparseElementList, int elementAmount,
+                               int A_rows, int A_columns, double *B_mat, int B_rows, int B_columns)
+{
+	if (A_columns != B_rows) return NULL_GUID;
+
+	double* r;
+	ocrGuid_t dataBlock;
+	DBCREATE(&dataBlock, (void**) &r, A_rows * B_columns * sizeof (double),
+		DB_PROP_NONE, NULL_GUID, NO_ALLOC);
+
+	for (int i = 0; i < A_rows; i++) {
+		for (int j = 0; j < B_columns; j++) {
+			r[i * B_columns + j] = 0;
+		}
+	}
+
+	for (int z = 0; z < elementAmount; z++) {
+		int i = sparseElementList[z] / A_rows;
+		int x = sparseElementList[z] % A_rows;
+		for (int j = 0; j < B_columns; j++) {
+			r[i * B_columns + j] += A_mat[z] * B_mat[x * B_columns + j];
+		}
+	}
+
 	return dataBlock;
 }
 

@@ -44,6 +44,8 @@ Matrix* matrixScale(Matrix *A, double scalar);
 ocrGuid_t matrixScale(double *A_mat, int A_rows, int A_columns, double *scalar);
 Matrix* matrixProduct(Matrix *A, Matrix *B);
 ocrGuid_t matrixProduct(double *A_mat, int A_rows, int A_columns, double *B_mat, int B_rows, int B_columns);
+ocrGuid_t matrixProduct_sparse(double *A_mat, unsigned int *sparseElementList, int elementAmount,
+                               int A_rows, int A_columns, double *B_mat, int B_rows, int B_columns);
 Matrix* matrixTranspose(Matrix *A);
 ocrGuid_t matrixTranspose(double *A_mat, int A_rows, int A_columns);
 Matrix* matrixAdd(Matrix *A, Matrix *B);
