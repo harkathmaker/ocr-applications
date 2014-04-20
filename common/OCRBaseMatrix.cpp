@@ -13,23 +13,23 @@ unsigned int OCRMatrix::getColumns() const {
 ocrGuid_t OCRMatrix::getDatablock() const {
     return datablock;
 }
-void *getData() const {
+void *OCRMatrix::getData() const {
     return data;
 }
 
 void OCRMatrix::print() const {
-    for(unsigned int c=0;c<columns;c++) {
+    for(unsigned int r=0;r<rows;r++) {
         PRINTF("[ ");
-        for(unsigned int r=0;r<rows;r++) {
+        for(unsigned int c=0;c<columns;c++) {
             PRINTF(" %.4e ",getElement(r,c));
         }
         PRINTF(" ]\n");
     }
 }
 
-OCRSparseMatrix *OCRMatrix::multiplySparse(OCRMatrix *other, double defVal, void *dest, unsigned int resCap) {
+OCRSparseMatrix *OCRMatrix::multiplySparse(OCRMatrix *other, void *dest, double defVal, unsigned int resCap) const {
     // Check that the matrix is a valid size
-    assert(columns == other->rows);
+    ASSERT(columns == other->rows);
     unsigned int resultColumns = other->columns;
     unsigned int resultRows = rows;
     ocrGuid_t db = NULL_GUID;
@@ -78,7 +78,7 @@ OCRSparseMatrix *OCRMatrix::multiplySparse(OCRMatrix *other, double defVal, void
     // Keep track of where we are in the sparse array
     OCRSparseMatrix *ret = new OCRSparseMatrix(dest,defVal,db);
     unsigned int k = 0;
-    for(std::map<unsigned int,double>::iterator it=entries.begin();it!=entries.end();it++) {
+    for(std::map<unsigned int,double>::iterator it=rEntries.begin();it!=rEntries.end();it++) {
         resultIndices[k] = it->first;
         resultVals[k] = it->second;
         k++;
@@ -88,9 +88,9 @@ OCRSparseMatrix *OCRMatrix::multiplySparse(OCRMatrix *other, double defVal, void
     return ret;
 }
 
-OCRDenseMatrix *OCRMatrix::multiplyDense(OCRMatrix *other, void *dest) {
+OCRDenseMatrix *OCRMatrix::multiplyDense(OCRMatrix *other, void *dest) const {
     // Check that the matrix is a valid size
-    assert(columns == other->rows);
+    ASSERT(columns == other->rows);
     unsigned int resultColumns = other->columns;
     unsigned int resultRows = rows;
     ocrGuid_t db = NULL_GUID;

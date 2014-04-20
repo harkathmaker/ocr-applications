@@ -9,21 +9,19 @@
 #ifndef __OCR_APPLICATIONS_BASE_MATRIX
 #define __OCR_APPLICATIONS_BASE_MATRIX
 
+#define __OCR__
+
 #include <ocr.h>
+#include <ocr-errors.h>
 
 class OCRSparseMatrix;
 class OCRDenseMatrix;
-
-class OCRMatrixException: public runtime_error {
-public:
-    OCRMatrixException(const std::string& msg): runtime_error(msg) {}
-};
 
 class OCRMatrix {
 public:
     OCRMatrix();
     virtual double getElement(unsigned int row, unsigned int column) const=0;
-    virtual void setElement(unsigned int row, unsigned int column, double val) const=0;
+    virtual void setElement(unsigned int row, unsigned int column, double val)=0;
 
     void print() const;
 
@@ -33,8 +31,8 @@ public:
     // datablock is created.
     // The returned OCRMatrix is created with new, and must be cleaned up with
     // delete.
-    OCRMatrix *multiplySparse(OCRMatrix *other, void *data=NULL, double defVal=0.0, unsigned int capacity=0) const;
-    OCRMatrix *multiplyDense(OCRMatrix *other, void *data=NULL) const;
+    OCRSparseMatrix *multiplySparse(OCRMatrix *other, void *data=NULL, double defVal=0.0, unsigned int capacity=0) const;
+    OCRDenseMatrix *multiplyDense(OCRMatrix *other, void *data=NULL) const;
 
     ocrGuid_t getDatablock() const;
     void *getData() const;
@@ -42,7 +40,7 @@ public:
     unsigned int getRows() const;
     unsigned int getColumns() const;
 
-private:
+protected:
     unsigned int rows;
     unsigned int columns;
 
