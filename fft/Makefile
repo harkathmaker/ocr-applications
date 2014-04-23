@@ -1,6 +1,12 @@
 CFLAGS=-I${OCR_ROOT}/include -O0
 LDFLAGS=-L${OCR_ROOT}/lib -locr -lm
 
+ifdef mic
+        CC := icc
+        CFLAGS := $(CFLAGS) -mmic
+        LDFLAG := $(LDFLAGS) -mmic -L/opt/intel/composer_xe_2013_sp1.1.106/compiler/lib/mic -limf -lsvml -lirng -lintlc
+endif
+
 %.o : %.c
 	echo "$(CC) $(CFLAGS) $(LDFLAGS) $@"
 	$(CC) $(CFLAGS) $(LDFLAGS) $@
