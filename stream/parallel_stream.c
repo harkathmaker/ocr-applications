@@ -11,7 +11,7 @@
 #endif
 
 #ifndef STREAM_TYPE
-#	define STREAM_TYPE double
+#	define STREAM_TYPE unsigned double
 #endif
 
 /*
@@ -141,13 +141,7 @@ ocrGuid_t resultsEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 	if (verify) {
 		STREAM_TYPE a = 0, ai, b = 0, bi, c = 0, ci;
 		STREAM_TYPE scalar = (STREAM_TYPE) paramv[4];
-
-		// Sum actual values
-		for (i = 0; i < split; i++) {
-			a += data[i];
-			b += data[db_size + i];
-			c += data[2 * db_size + i];
-		}
+		int diff = 0;
 
 		// Reproduce initializations
 		ai = 1.0;
@@ -162,16 +156,26 @@ ocrGuid_t resultsEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 			ai = bi + scalar * ci;
 		}
 
+		// Compare against actual
 		PRINTF("After %d Iterations:\n", iterations);
-		if ((split * ai - a + split * bi - b + split * ci - c) == 0)
-			PRINTF("No differences between expected and actual\n");
-		else  
-			PRINTF("Expected a: %f, Actual a: %f\n"
-				   "Expected b: %f, Actual b: %f\n"
-				   "Expected c: %f, Actual c: %f\n"
-				   "Note: Expected values are multiplied by split (i.e. a * split)\n"
-					"     Actual values are sum of split number of first elements", 
-					split * ai, a, split * bi, b, split * ci, c);
+		for (i = 0; i < split; i++) {
+			//PRINTF("Expected a: %f, Actual a: %f\n", ai, cur[0]);
+			if (data[i] != ai) {
+				diff += 1;
+				PRINTF("Expected a: %f, Actual a: %f\n", ai, data[i]);
+			}
+			//PRINTF("Expected b: %f, Actual b: %f\n", bi, cur[chunk]);
+			if (data[db_size + i] != bi) {
+				diff += 1;
+				PRINTF("Expected b: %f, Actual b: %f\n", bi, data[db_size + i]);
+			}
+			//PRINTF("Expected c: %f, Actual c: %f\n", ci, cur[2 * chunk]);
+			if (data[2 * db_size + i] != ci) {
+				diff += 1;
+				PRINTF("Expected c: %f, Actual c: %f\n", ci, data[2 * db_size + i]);
+			}
+		}
+		PRINTF("%d differences between expected and actual\n", diff);
 	}
 	ocrShutdown();
 	return NULL_GUID;

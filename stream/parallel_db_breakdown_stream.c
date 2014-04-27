@@ -139,14 +139,7 @@ ocrGuid_t resultsEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 	if (verify) {
 		STREAM_TYPE a = 0, ai, b = 0, bi, c = 0, ci;
 		STREAM_TYPE scalar = (STREAM_TYPE) paramv[5];
-
-		// Sum actual values
-		for (i = 0; i < split; i++) {
-			STREAM_TYPE * cur = (STREAM_TYPE *) depv[i].ptr;
-			a += cur[0];
-			b += cur[chunk];
-			c += cur[2 * chunk];
-		}
+		int diff = 0;
 
 		// Reproduce initializations
 		ai = 1.0;
@@ -160,15 +153,29 @@ ocrGuid_t resultsEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 			ci = ai + bi;
 			ai = bi + scalar * ci;
 		}
-		PRINTF("After %d Iterations:\n", iterations);
-		if ((split * ai - a + split * bi - b + split * ci - c) == 0)
-			PRINTF("No differences between expected and actual\n");
-		else  
-			PRINTF("Expected a: %f, Actual a: %f\n"
-				   "Expected b: %f, Actual b: %f\n"
-				   "Expected c: %f, Actual c: %f\n", split* ai, a, split * bi, b, split * ci, c);
-	}
 
+		// Compare against actual
+		PRINTF("After %d Iterations:\n", iterations);
+		for (i = 0; i < split; i++) {
+			STREAM_TYPE * cur = (STREAM_TYPE *) depv[i].ptr;
+			//PRINTF("Expected a: %f, Actual a: %f\n", ai, cur[0]);
+			if (cur[0] != ai) {
+				diff += 1;
+				PRINTF("Expected a: %f, Actual a: %f\n", ai, cur[0]);
+			}
+			//PRINTF("Expected b: %f, Actual b: %f\n", bi, cur[chunk]);
+			if (cur[chunk] != bi) {
+				diff += 1;
+				PRINTF("Expected b: %f, Actual b: %f\n", bi, cur[chunk]);
+			}
+			//PRINTF("Expected c: %f, Actual c: %f\n", ci, cur[2 * chunk]);
+			if (cur[2 * chunk] != ci) {
+				diff += 1;
+				PRINTF("Expected c: %f, Actual c: %f\n", ci, cur[2 * chunk]);
+			}
+		}
+		PRINTF("%d differences between expected and actual\n", diff);
+	}
 	ocrShutdown();
 	return NULL_GUID;
 }
