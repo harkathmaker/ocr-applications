@@ -6,6 +6,12 @@ OCR_FLAGS=-L${OCR_INSTALL}/lib -L${PTHREAD_DIR} -I${OCR_INSTALL}/include -locr -
 CLANG=clang++
 LLC=llc
 
+ifdef mic
+        CC := icc
+        CFLAGS := $(CFLAGS) -mmic
+        LDFLAG := $(LDFLAGS) -mmic -L/opt/intel/composer_xe_2013_sp1.1.106/compiler/lib/mic -limf -lsvml -lirng -lintlc
+endif
+
 ifndef OCR_INSTALL
 $(error OCR_INSTALL not set)
 endif
@@ -28,8 +34,8 @@ compile_pp:
 	g++ -g -o $(PROG).exe timer.o main.o matrix.o $(OCR_FLAGS)
 
 run:
-	octave ./cgmatrix.m
-	./$(PROG).exe $(OCR_RUN_FLAGS) cg.mat 100 20
+#	octave ./cgmatrix.m
+	./$(PROG).exe $(OCR_RUN_FLAGS) 0 cg500_s.mat 500
 
 clean:
 	-rm -Rf *.o *.bc $(PROG).exe

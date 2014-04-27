@@ -2,6 +2,12 @@ CC=gcc
 CFLAGS=-I${OCR_ROOT}/include -g
 LDFLAGS=-L${OCR_ROOT}/lib -locr
 
+ifdef mic
+        CC := icc
+        CFLAGS := $(CFLAGS) -mmic
+        LDFLAG := $(LDFLAGS) -mmic -L/opt/intel/composer_xe_2013_sp1.1.106/compiler/lib/mic -limf -lsvml -lirng -lintlc
+endif
+
 all : native_stream.o serial_stream.o serial_edt_breakdown_stream.o parallel_stream.o\
       parallel_db_breakdown_stream.o parallel_db_edt_breakdown_stream.o 
 
