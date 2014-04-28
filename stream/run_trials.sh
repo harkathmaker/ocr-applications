@@ -13,7 +13,7 @@ for name in serial_stream serial_edt_breakdown_stream
 		for ((db=$min; db<=$max; db=db*2))
 			do 
 				echo ./$name -d $db -i $i -e $name.csv -r
-				#./$name -d $db -i $i -e $name.csv -r
+				./$name -d $db -i $i -e $name.csv -r
 			done
 	done
 
@@ -25,7 +25,7 @@ for name in parallel_stream parallel_db_breakdown_stream parallel_db_edt_breakdo
 				for ((p=$min; p<=$db; p=p*2)) 
 					do
 						echo ./$name -d $db -i $i -e $name.csv -p $p -r
-						#./$name -d $db -i $i -e $name.csv -p $p -r
+						./$name -d $db -i $i -e $name.csv -p $p -r
 					done
 			done
 	done
