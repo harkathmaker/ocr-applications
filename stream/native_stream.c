@@ -46,7 +46,7 @@
 # include <float.h>
 # include <limits.h>
 # include <sys/time.h>
-
+# include <omp.h>
 /*-----------------------------------------------------------------------
  * INSTRUCTIONS:
  *
@@ -91,7 +91,7 @@
  *          per array.
  */
 #ifndef STREAM_ARRAY_SIZE
-#   define STREAM_ARRAY_SIZE	10000000
+#   define STREAM_ARRAY_SIZE	1000000
 #endif
 
 /*  2) STREAM runs each kernel "NTIMES" times and reports the *best* result
@@ -103,11 +103,6 @@
  *      NTIMES can also be set on the compile line without changing the source
  *         code using, for example, "-DNTIMES=7".
  */
-#ifdef NTIMES
-#if NTIMES<=1
-#   define NTIMES	10
-#endif
-#endif
 #ifndef NTIMES
 #   define NTIMES	10
 #endif
@@ -201,11 +196,16 @@ extern void tuned_STREAM_Scale(STREAM_TYPE scalar);
 extern void tuned_STREAM_Add();
 extern void tuned_STREAM_Triad(STREAM_TYPE scalar);
 #endif
+
+#ifndef NUMTHREADS
+	#define NUMTHREADS 1
+#endif
+
 #ifdef _OPENMP
 extern int omp_get_num_threads();
 #endif
 int
-main()
+main(int argc, char ** argv)
     {
     int			quantum, checktick();
     int			BytesPerWord;
@@ -244,6 +244,7 @@ main()
     printf(" will be used to compute the reported bandwidth.\n");
 
 #ifdef _OPENMP
+	omp_set_num_threads(NUMTHREADS);
     printf(HLINE);
 #pragma omp parallel 
     {
@@ -359,10 +360,12 @@ main()
 	    }
 	}
     
+	double total_avg_time = 0.0;
     printf("Function    Best Rate MB/s  Avg time     Min time     Max time\n");
     for (j=0; j<4; j++) {
 		avgtime[j] = avgtime[j]/(double)(NTIMES-1);
 
+		total_avg_time += avgtime[j];
 		printf("%s%12.1f  %11.6f  %11.6f  %11.6f\n", label[j],
 	       1.0E-06 * bytes[j]/mintime[j],
 	       avgtime[j],
@@ -371,6 +374,10 @@ main()
     }
     printf(HLINE);
 
+	// Export to CSV File
+	
+	FILE * f = fopen(argv[1], "a");
+	fprintf(f, "%d, %d, %f\n", STREAM_ARRAY_SIZE, NUMTHREADS, total_avg_time);
     /* --- Check Results --- */
     checkSTREAMresults();
     printf(HLINE);
@@ -540,6 +547,8 @@ void checkSTREAMresults ()
 	if (err == 0) {
 		printf ("Solution Validates: avg error less than %e on all three arrays\n",epsilon);
 	}
+
+	printf ("    Expected a(1), b(1), c(1): %f %f %f \n",aj,bj,cj);
 #ifdef VERBOSE
 	printf ("Results Validation Verbose Results: \n");
 	printf ("    Expected a(1), b(1), c(1): %f %f %f \n",aj,bj,cj);
