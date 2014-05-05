@@ -27,6 +27,132 @@ void OCRMatrix::print() const {
     }
 }
 
+double OCRMatrix::getDeterminant() const {
+    ASSERT(columns == rows);
+    double determinant = 1.0;
+    // Store a dense copy of the matrix for calculating the determinant. NOT EFFICIENT,
+    // use only at the uttermost end of need.
+    double *copy;
+    ocrGuid_t copyDb;
+    DBCREATE(&copyDb, (void**)&copy,sizeof(double)*rows*columns,0,NULL_GUID,NO_ALLOC);
+    for(unsigned int r=0;r<rows;r++) {
+        for(unsigned int c=0;c<columns;c++) {
+            copy[r*columns+c] = getElement(r,c);
+        }
+    }
+    
+    // Access rows through pointer array to simplify swapping.
+    double *copyRows[rows];
+    for(unsigned int i=0;i<rows;i++) {
+        copyRows[i] = copy+columns*i;
+    }
+
+    // For every column j:
+    for(unsigned int j=0;j<columns;j++) {
+        // Find a row m with a nonzero value in the column. If none exist, det = 0
+        unsigned int m = j;
+        while(m < rows && copyRows[m][j] == 0.0) {
+            m++;
+        }
+        if(m == rows) {
+            return 0.0;
+        }
+        // Swap the rows if not the current one, j. Multiply det by -1
+        if(m != j) {
+            std::swap(copyRows[m],copyRows[j]);
+            determinant *= -1;
+        }
+        // For every row k below j:
+        for(unsigned int k=j+1;k<rows;k++) {
+            // Subtract multiples of j such that M_k,j == 0
+            // Only values >= j need be subtracted, since those to the left are zero
+            if(copyRows[k][j] == 0.0) {
+                continue;
+            }
+            double mult = copyRows[k][j] / copyRows[j][j];
+            for(unsigned int e=j;e<columns;j++) {
+                copyRows[k][e] -= copyRows[j][e] * mult;
+            }
+        }
+    }
+    
+    // Determinant = product of diagonals
+    for(unsigned int i=0;i<columns;i++) {
+        determinant *= copy[i*columns+i];
+    }
+    
+    // TODO: release DB
+
+    return determinant;
+}
+
+OCRMatrix *OCRMatrix::getInverse() const {
+    ASSERT(columns == rows);
+
+    // Store a dense copy of the matrix for calculating the determinant. NOT EFFICIENT,
+    // use only at the uttermost end of need.
+    double *copy;
+    ocrGuid_t copyDb;
+    DBCREATE(&copyDb, (void**)&copy,sizeof(double)*rows*columns*2,0,NULL_GUID,NO_ALLOC);
+    for(unsigned int r=0;r<rows;r++) {
+        for(unsigned int c=0;c<columns;c++) {
+            copy[r*column*2s+c] = getElement(r,c);
+        }
+    }
+    
+    // Access rows through pointer array to simplify swapping.
+    double *invRows[rows];
+    for(unsigned int i=0;i<rows;i++) {
+        invRows[i] = copy+columns*2*i;
+    }
+    // For every column j:
+    for(unsigned int j=0;j<columns;j++) {
+        unsigned int m = j;
+        // Find a row m w/ nonzero value. If none exist, no inverse exists.
+        while(m < rows && invRows[m][j] == 0) {
+            m++;
+        }
+        if(m == rows) {
+            ASSERT(false,"Trying to invert singular matrix!");
+        }
+        // Swap row into position if necessary
+        if(m != j) {
+            std::swap(invRows[m],invRows[j]);
+        }
+        
+        // Normalize row
+        double normalizeFactor = 1.0 / invRows[j][j];
+        for(unsigned int e=j;e<columns*2;e++) {
+            invRows[j][e] *= normalizeFactor;
+        }
+
+        // for every row k != j:
+        for(unsigned int k=0;k<rows;k++) {
+            if(k == j) {
+                continue;
+            }
+            // subtract multiples of row j such that M_k,j == 0
+            // Only values >= j need be subtracted.
+            normalizeFactor = -invRows[k][j];
+            for(unsigned int e=j;e<columns*2;e++) {
+                invRows[k][e] += invRows[j][e] * normalizeFactor;
+            }
+        }
+    }
+
+    // Build matrix from augmented right side
+    OCRDenseMatrix *inverse = new OCRDenseMatrix(rows,columns);
+    for(unsigned int r=0;r<rows;r++) {
+        for(unsigned int c=columns;c<columns*2;c++) {
+            inverse->setElement(r,c-columns,invRows[r][c]);
+        }
+    }
+
+    // TODO: release DB
+
+    return inverse;
+}
+
 OCRSparseMatrix *OCRMatrix::multiplySparse(OCRMatrix *other, void *dest, double defVal, unsigned int resCap) const {
     // Check that the matrix is a valid size
     ASSERT(columns == other->rows);

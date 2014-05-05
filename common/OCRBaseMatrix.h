@@ -25,6 +25,18 @@ public:
 
     void print() const;
 
+    // Returns the determinant of the matrix. Only valid for square matrices.
+    // This function can be overridden in child classes that can exploit special
+    // patterns in their respective structures.
+    // NOTE: computation of the determinant is almost always inefficient, and requires
+    // additional memory to be allocated as well.
+    virtual double getDeterminant() const;
+
+    // Returns a pointer to a new matrix that is the inverse of the current one.
+    // NOTE: inverse of a sparse matrix is usually dense. To solve systems such as
+    // Ax = b, use LU decomposition or other techniques instead.
+    virtual OCRMatrix *getInverse() const;
+
     // Performs matrix multiplication, outputting a sparse matrix.
     // If data is null, the result will be stored in a newly allocated datablock.
     // If data is non-null, the result will be stored in that address and no

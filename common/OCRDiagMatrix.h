@@ -19,6 +19,10 @@ public:
     // A new datablock is allocated to hold this data.
     OCRDiagMatrix(unsigned int rows, unsigned int column);
 
+    double getDeterminant() const;
+
+    OCRMatrix *getInverse() const;
+
     double getElement(unsigned int row, unsigned int column) const;
     void setElement(unsigned int row, unsigned int column, double val);
 private:
