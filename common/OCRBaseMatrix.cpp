@@ -70,18 +70,18 @@ double OCRMatrix::getDeterminant() const {
                 continue;
             }
             double mult = copyRows[k][j] / copyRows[j][j];
-            for(unsigned int e=j;e<columns;j++) {
+            for(unsigned int e=j;e<columns;e++) {
                 copyRows[k][e] -= copyRows[j][e] * mult;
             }
         }
     }
-    
+
     // Determinant = product of diagonals
     for(unsigned int i=0;i<columns;i++) {
-        determinant *= copy[i*columns+i];
+        determinant *= copyRows[i][i];
     }
-    
-    // TODO: release DB
+
+    ocrDbDestroy(copyDb);
 
     return determinant;
 }
@@ -96,7 +96,8 @@ OCRMatrix *OCRMatrix::getInverse() const {
     DBCREATE(&copyDb, (void**)&copy,sizeof(double)*rows*columns*2,0,NULL_GUID,NO_ALLOC);
     for(unsigned int r=0;r<rows;r++) {
         for(unsigned int c=0;c<columns;c++) {
-            copy[r*column*2s+c] = getElement(r,c);
+            copy[r*columns*2+c] = getElement(r,c);
+            copy[r*columns*2+c+columns] = (r == c ? 1 : 0);
         }
     }
     
@@ -112,9 +113,7 @@ OCRMatrix *OCRMatrix::getInverse() const {
         while(m < rows && invRows[m][j] == 0) {
             m++;
         }
-        if(m == rows) {
-            ASSERT(false,"Trying to invert singular matrix!");
-        }
+        ASSERT(m != rows);
         // Swap row into position if necessary
         if(m != j) {
             std::swap(invRows[m],invRows[j]);
@@ -148,7 +147,7 @@ OCRMatrix *OCRMatrix::getInverse() const {
         }
     }
 
-    // TODO: release DB
+    ocrDbDestroy(copyDb);
 
     return inverse;
 }

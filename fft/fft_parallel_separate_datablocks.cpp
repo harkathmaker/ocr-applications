@@ -232,14 +232,14 @@ ocrGuid_t finalPrintEdt(u32 paramc, u64 *paramv, u32 depc, ocrEdtDep_t depv[]) {
 	float *x_in = (float*)data_in;
 	float *X_real = (float*)(data_real);
 	float *X_imag = (float*)(data_imag);
-    double *startTime = (double*)(depv[4].ptr);
+	double *startTime = (double*)(depv[4].ptr);
 
 	if(verbose) {
 		PRINTF("Final print EDT\n");
 	}
 
-    double endTime = mysecond();
-    PRINTF("Time to complete (seconds): %f\n",endTime-startTime);
+	double endTime = mysecond();
+	PRINTF("%f\n",endTime-*startTime);
 
 	if(printResults) {
 		PRINTF("Starting values:\n");
@@ -280,7 +280,7 @@ extern "C" ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv
 			PRINTF("argv[%d]: %s\n",i,argv[i]);
 		}
 	}
-	if(iterations > 1) {
+	if(iterations > 1 && verbose) {
 		PRINTF("Running %d iterations\n",iterations);
 	}
 
@@ -335,8 +335,9 @@ extern "C" ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv
 	if(verify) {
 		edtEventGuid = setUpVerify(dataInGuid, dataRealGuid, dataImagGuid, N, edtEventGuid);
 	}
-    double startTime = 
-	DBCREATE(&timeDataGuid, (void **) &&startTime, sizeof(double), 0, NULL_GUID, NO_ALLOC);
+	double *startTime;
+	DBCREATE(&timeDataGuid, (void **) &startTime, sizeof(double), 0, NULL_GUID, NO_ALLOC);
+	*startTime = mysecond();
 	u64 edtParamv[3] = { N, verbose, printResults };
 	// Create finish EDT, with dependence on last EDT
 	ocrGuid_t finishDependencies[5] = { edtEventGuid, dataInGuid, dataRealGuid, dataImagGuid, timeDataGuid };

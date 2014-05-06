@@ -29,7 +29,7 @@ OCRMatrix *OCRDiagMatrix::getInverse() const {
     OCRDiagMatrix *ret = new OCRDiagMatrix(columns);
     // The inverse of a diagonal matrix is just 1 / x for each entry x 
     for(unsigned int i=0;i<rows;i++) {
-        ret->setElement(i,i,1.0/values[row]);
+        ret->setElement(i,i,1.0/values[i]);
     }
     return ret;
 }

@@ -17,7 +17,7 @@ public:
     //OCRDiagMatrix(OCRSparseMatrix *spm);
     // Constructs a dense matrix with the given number of rows and columns.
     // A new datablock is allocated to hold this data.
-    OCRDiagMatrix(unsigned int rows, unsigned int column);
+    OCRDiagMatrix(unsigned int size);
 
     double getDeterminant() const;
 

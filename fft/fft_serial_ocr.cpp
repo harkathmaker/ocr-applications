@@ -95,6 +95,7 @@ extern "C" ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv
 		edtStack.push(edtGuid);
 		eventStack.push(edtEventGuid);
 	}
+	eventStack.pop();
 	
 	while(!edtStack.empty()) {
 		edtGuid = edtStack.top();

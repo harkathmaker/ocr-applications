@@ -1,6 +1,6 @@
 CFLAGS=-I${OCR_ROOT}/include -I${OCR_ROOT}/../../src/inc -O0
 LDFLAGS=-L${OCR_ROOT}/lib -locr -lm
-OTHER_SOURCES=OCRSparseMatrix.cpp OCRDenseMatrix.cpp OCRBaseMatrix.cpp
+OTHER_SOURCES=OCRSparseMatrix.cpp OCRDenseMatrix.cpp OCRBaseMatrix.cpp OCRDiagMatrix.cpp
 
 %.o : %.c
 	echo "$(CC) $(CFLAGS) $(LDFLAGS) $@"
