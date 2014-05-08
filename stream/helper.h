@@ -17,7 +17,8 @@ double mysecond() {
 	return ((double) tp.tv_sec + (double) tp.tv_usec * 1.e-6 );
 }
 
-void export_csv(char * name, u64 db_size, u64 iterations, u64 split, STREAM_TYPE scalar, STREAM_TYPE * trials, STREAM_TYPE avg) {
+void export_csv(char * name, u64 db_size, u64 iterations, u64 split, STREAM_TYPE scalar, STREAM_TYPE trials[][4], STREAM_TYPE cavg,
+				STREAM_TYPE savg, STREAM_TYPE aavg, STREAM_TYPE tavg) {
 	char path[150];
 	//strcpy(path, "./results/");
 	//strcat(path, name);
@@ -31,7 +32,7 @@ void export_csv(char * name, u64 db_size, u64 iterations, u64 split, STREAM_TYPE
 	u64 i;
 		//for (i = 0; i < iterations; i++) 
 			//fprintf(f, "%llu %f, ", db_size, trials[i]);
-	fprintf(f, "%llu, %llu, %llu, %.2f, %f\n", db_size, iterations, split, scalar, avg);
+	fprintf(f, "%llu, %llu, %llu, %.2f, %f, %f, %f, %f\n", db_size, iterations, split, scalar, cavg, savg, aavg, tavg);
 
 	fclose(f);
 	return;

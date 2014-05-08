@@ -31,25 +31,31 @@ ocrGuid_t pipelineEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 	STREAM_TYPE scalar = (STREAM_TYPE) paramv[5];
 	STREAM_TYPE * data = (STREAM_TYPE *) depv[0].ptr;
 
-	data[3 * chunk + paramv[0] - 1] = mysecond();
-
+	data[3 * chunk + 4 * (paramv[0] - 1)] = mysecond();
 	for (i = 0; i < chunk; i++)
 		data[2 * chunk + i] = data[i];
-	// PRINTF("FINISHED COPY\n");
+	data[3 * chunk + 4 * (paramv[0] - 1)] = mysecond() - data[3 * chunk + 4 * (paramv[0] - 1)];
+	//PRINTF("FINISHED COPY = %f\n", data[3 * chunk + 4 * (paramv[0] - 1)]);
 
+
+	data[3 * chunk + 4 * (paramv[0] - 1) + 1] = mysecond();
 	for (i = 0; i < chunk; i++)
 		data[chunk + i] = scalar * data[2 * chunk + i];
-	// PRINTF("FINISHED SCALE\n");
+	data[3 * chunk + 4 * (paramv[0] - 1) + 1] = mysecond() - data[3 * chunk + 4 * (paramv[0] - 1) + 1];
+	//PRINTF("FINISHED SCALE = %f\n", data[3 * chunk + 4 * (paramv[0] - 1) + 1]);
 
+
+	data[3 * chunk + 4 * (paramv[0] - 1) + 2] = mysecond();
 	for (i = 0; i < chunk; i++)
 		data[2 * chunk + i] = data[i] + data[chunk + i];
-	// PRINTF("FINISHED ADD\n");
+	data[3 * chunk + 4 * (paramv[0] - 1) + 2] = mysecond() - data[3 * chunk + 4 * (paramv[0] - 1) + 2];
+	//PRINTF("FINISHED ADD = %f\n", data[3 * chunk + 4 * (paramv[0] - 1) + 2]);
 
+	data[3 * chunk + 4 * (paramv[0] - 1) + 3] = mysecond();
 	for (i = 0; i < chunk; i++)
 		data[i] = data[chunk + i] + scalar * data[2 * chunk + i];
-	// PRINTF("FINISHED TRIAD\n");
-
-	data[3 * chunk + paramv[0] - 1] = mysecond() - data[3 * chunk + paramv[0] - 1];
+	data[3 * chunk + 4 * (paramv[0] - 1) + 3] = mysecond() - data[3 * chunk + 4 * (paramv[0] - 1) + 3];
+	//PRINTF("FINISHED TRIAD = %f\n", data[3 * chunk + 4 * (paramv[0] - 1) + 3]);
 
 	//PRINTF("FINISHED PIPELINE\n");
 	return NULL_GUID;
@@ -63,7 +69,7 @@ ocrGuid_t pipeExecEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 	ocrGuid_t pipelineTemplateGuid = paramv[8];
 	ocrGuid_t pipelineGuid;
 
-	// // Spawn pipeline children operating on chunk amounts of data
+	// Spawn pipeline children operating on chunk amounts of data
 	for (i = 0; i < split; i++) {
 		ocrEdtCreate(&pipelineGuid, pipelineTemplateGuid, EDT_PARAM_DEF, paramv, EDT_PARAM_DEF, NULL_GUID,
 				 EDT_PROP_FINISH, NULL_GUID, NULL);
@@ -99,7 +105,7 @@ ocrGuid_t iterEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 	// Dependencies for pipeline
 	for (i = 0; i < split; i++)
 		ocrAddDependence((ocrGuid_t) depv[i].guid, pipeExecGuid, i, DB_MODE_ITW);
-	// PRINTF("FINISHED ITER\n");
+	//PRINTF("FINISHED ITER\n");
 	return NULL_GUID;
 }
 
@@ -114,28 +120,52 @@ ocrGuid_t resultsEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 	int verify = (int) paramv[4];
 	STREAM_TYPE scalar = (STREAM_TYPE) paramv[5];
 	int verbose = (int) paramv[6];
-	STREAM_TYPE totalsum = 0.0, timingsum[iterations], avg;
+	STREAM_TYPE totalsum[iterations], timingsum[iterations][4], cavg, savg, aavg, tavg;
 
 	// Sum partial timings
 	for (i = 0; i < split; i++) {
 		STREAM_TYPE * cur = (STREAM_TYPE *) depv[i].ptr;
-		for (j = 0; j < iterations; j++)
-			timingsum[j] += cur[3 * chunk + j];
+		for (j = 0; j < iterations; j++) {
+			timingsum[j][0] += cur[3 * chunk + 4 * j];
+			timingsum[j][1] += cur[3 * chunk + 4 * j + 1];
+			timingsum[j][2] += cur[3 * chunk + 4 * j + 2];
+			timingsum[j][3] += cur[3 * chunk + 4 * j + 3];
+		}
 	}
 
+	// Report results
 	PRINTF("Timing Results:\n");
 	for (i = 0; i < iterations; i++) {
-		if (verbose)
-			PRINTF("TRIAL %d: %f s\n", i + 1, timingsum[i]);
-		totalsum += timingsum[i];
+		if (verbose) {
+			PRINTF("TRIAL %d:\n", i + 1);
+			PRINTF("COPY: %fs\n", timingsum[i][0]);
+			PRINTF("SCALE: %fs\n", timingsum[i][1]);
+			PRINTF("ADD: %fs\n", timingsum[i][2]);
+			PRINTF("TRIAD: %fs\n", timingsum[i][3]);
+		}
+		totalsum[0] += timingsum[i][0];
+		totalsum[1] += timingsum[i][1];
+		totalsum[2] += timingsum[i][2];
+		totalsum[3] += timingsum[i][3];
 	}
-	avg = totalsum / iterations;
-	PRINTF("AVERAGE Time Per chunk: %f s\n", avg / split);
-	PRINTF("AVERAGE Time Per Trial: %f s\n", avg);
+	cavg = totalsum[0] / iterations;
+	savg = totalsum[1] / iterations;
+	aavg = totalsum[2] / iterations;
+	tavg = totalsum[3] / iterations;
+	PRINTF("COPY:  AVERAGE Time Per chunk: %f s\n", cavg / split);
+	PRINTF("COPY:  AVERAGE Time Per Trial: %f s\n", cavg);
+	PRINTF("SCALE: AVERAGE Time Per chunk: %f s\n", savg / split);
+	PRINTF("SCALE: AVERAGE Time Per Trial: %f s\n", savg);
+	PRINTF("ADD:   AVERAGE Time Per chunk: %f s\n", aavg / split);
+	PRINTF("ADD:   AVERAGE Time Per Trial: %f s\n", aavg);
+	PRINTF("TRIAD: AVERAGE Time Per chunk: %f s\n", tavg / split);
+	PRINTF("TRIAD: AVERAGE Time Per Trial: %f s\n", tavg);
 
+	// Export to CSV
 	if (strcmp((char *) depv[split].ptr, "") != 0) 
-		export_csv((char *) depv[split].ptr, db_size, iterations, split, scalar, timingsum, avg);
+		export_csv((char *) depv[split].ptr, db_size, iterations, split, scalar, timingsum, cavg, savg, aavg, tavg);
 
+	// Verify results
 	if (verify) {
 		STREAM_TYPE a = 0, ai, b = 0, bi, c = 0, ci;
 		STREAM_TYPE scalar = (STREAM_TYPE) paramv[5];
@@ -154,7 +184,7 @@ ocrGuid_t resultsEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 			ai = bi + scalar * ci;
 		}
 
-		// Compare against actual
+		// Compare against first elements of each "split" of actual
 		PRINTF("After %d Iterations:\n", iterations);
 		for (i = 0; i < split; i++) {
 			STREAM_TYPE * cur = (STREAM_TYPE *) depv[i].ptr;
@@ -217,10 +247,10 @@ ocrGuid_t mainEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 	u64 nparamv[9] = {1, db_size, iterations, split, chunk, scalar, pipeExecTemplateGuid, nextIterTemplateGuid, pipelineTemplateGuid};
 	u64 rparamv[7] = {db_size, iterations, split, chunk, verify, scalar, verbose};
 
-	// 3 * db_size + iterations = (3 * chunk + iterations)* split
+	// 3 * db_size + 4 * iterations = (3 * chunk + 4 * iterations) * split
 	for (i = 0; i < split; i++) {
 		ocrGuid_t chunkGuid;
-		DBCREATE(&chunkGuid,(void **) &chunkArray, sizeof(STREAM_TYPE)*(3 * chunk + iterations), 0, NULL_GUID, NO_ALLOC);
+		DBCREATE(&chunkGuid,(void **) &chunkArray, sizeof(STREAM_TYPE)*(3 * chunk + 4 * iterations), 0, NULL_GUID, NO_ALLOC);
 		for (j = 0; j < chunk; j++) {
 			chunkArray[j] = 1.0;
 			chunkArray[chunk + j] = 2.0;
@@ -246,6 +276,6 @@ ocrGuid_t mainEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 	ocrAddDependence(iterDone, resultsGuid, split + 1, DB_MODE_RO);
 	for (i = 0; i < split; i++)
 		ocrAddDependence(dataGuids[i], iterGuid, i, DB_MODE_ITW);
-	// PRINTF("FINISHED MAIN\n");
+	//PRINTF("FINISHED MAIN\n");
 	return NULL_GUID;
 }
