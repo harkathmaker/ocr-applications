@@ -14,55 +14,67 @@
 #	define STREAM_TYPE double
 #endif
 
+# define HLINE "---------------------------------------------------------------\n"
 /*
 	NOTES: 
-	split datablocks are used with ranges of indexes corresponding to the following:
-			  a --> [0 to (chunk - 1)]
-			  b --> [chunk to (2 * chunk - 1)]
-			  c --> [2 * chunk to (3 * chunk - 1)]
-		timings --> [3 * chunk to (3 * chunk + iterations - 1)]
+	-- All results are in MB/s --> 1 MB = 10^6 B, NOT 2^20 B
+	-- split datablocks are used with ranges of indexes corresponding to the following:
+			  			 a --> [0 to (chunk - 1)]
+			  			 b --> [chunk to (2 * chunk - 1)]
+			  			 c --> [2 * chunk to (3 * chunk - 1)]
+			  copy timing  --> [3 * chunk]
+			  scale timing --> [3 * chunk + 1]
+			  add timing   --> [3 * chunk + 2]
+			  triad timing --> [3 * chunk + 3]
+			  ...
+			  ...
+			  ...
+			  copy timing  --> [3 * chunk + 4 * iterations]
+			  scale timing --> [3 * chunk + 4 * iterations + 1]
+			  add timing   --> [3 * chunk + 4 * iterations + 2]
+			  triad timing --> [3 * chunk + 4 * iterations + 3]
 */
 
-//                   0  1        2           3      4      5       6                     7                     8
-// u64 nparamv[9] = {1, db_size, iterations, split, chunk, scalar, pipeExecTemplateGuid, nextIterTemplateGuid, pipelineTemplateGuid};
+static char * label[4] = {"Copy:      ", "Scale:     ", "Add:       ", "Triad:     "};
+
+//                  0  1        2           3      4      5       6                     7                     8
+// u64 paramv[9] = {1, db_size, iterations, split, chunk, scalar, pipeExecTemplateGuid, nextIterTemplateGuid, pipelineTemplateGuid};
 ocrGuid_t pipelineEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 	u64 i;
 	u64 chunk = paramv[4];
 	STREAM_TYPE scalar = (STREAM_TYPE) paramv[5];
 	STREAM_TYPE * data = (STREAM_TYPE *) depv[0].ptr;
 
+	// COPY
 	data[3 * chunk + 4 * (paramv[0] - 1)] = mysecond();
 	for (i = 0; i < chunk; i++)
 		data[2 * chunk + i] = data[i];
 	data[3 * chunk + 4 * (paramv[0] - 1)] = mysecond() - data[3 * chunk + 4 * (paramv[0] - 1)];
-	//PRINTF("FINISHED COPY = %f\n", data[3 * chunk + 4 * (paramv[0] - 1)]);
 
-
+	// SCALE
 	data[3 * chunk + 4 * (paramv[0] - 1) + 1] = mysecond();
 	for (i = 0; i < chunk; i++)
 		data[chunk + i] = scalar * data[2 * chunk + i];
 	data[3 * chunk + 4 * (paramv[0] - 1) + 1] = mysecond() - data[3 * chunk + 4 * (paramv[0] - 1) + 1];
-	//PRINTF("FINISHED SCALE = %f\n", data[3 * chunk + 4 * (paramv[0] - 1) + 1]);
 
-
+	// ADD
 	data[3 * chunk + 4 * (paramv[0] - 1) + 2] = mysecond();
 	for (i = 0; i < chunk; i++)
 		data[2 * chunk + i] = data[i] + data[chunk + i];
 	data[3 * chunk + 4 * (paramv[0] - 1) + 2] = mysecond() - data[3 * chunk + 4 * (paramv[0] - 1) + 2];
-	//PRINTF("FINISHED ADD = %f\n", data[3 * chunk + 4 * (paramv[0] - 1) + 2]);
 
+	// TRIAD
 	data[3 * chunk + 4 * (paramv[0] - 1) + 3] = mysecond();
 	for (i = 0; i < chunk; i++)
 		data[i] = data[chunk + i] + scalar * data[2 * chunk + i];
 	data[3 * chunk + 4 * (paramv[0] - 1) + 3] = mysecond() - data[3 * chunk + 4 * (paramv[0] - 1) + 3];
-	//PRINTF("FINISHED TRIAD = %f\n", data[3 * chunk + 4 * (paramv[0] - 1) + 3]);
 
 	//PRINTF("FINISHED PIPELINE\n");
 	return NULL_GUID;
 }
 
-//                   0  1        2           3      4      5       6                     7                     8
-// u64 nparamv[9] = {1, db_size, iterations, split, chunk, scalar, pipeExecTemplateGuid, nextIterTemplateGuid, pipelineTemplateGuid};
+//                  0  1        2           3      4      5       6                     7                     8
+// u64 paramv[9] = {1, db_size, iterations, split, chunk, scalar, pipeExecTemplateGuid, nextIterTemplateGuid, pipelineTemplateGuid};
 ocrGuid_t pipeExecEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 	u64 i;
 	u64 split = paramv[3];
@@ -75,12 +87,13 @@ ocrGuid_t pipeExecEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 				 EDT_PROP_FINISH, NULL_GUID, NULL);
 		ocrAddDependence((ocrGuid_t) depv[i].guid, pipelineGuid, 0, DB_MODE_ITW);
 	}
+
 	//PRINTF("FINISHED PIPE EXEC\n");
 	return NULL_GUID;
 }
 
-//                   0  1        2           3      4      5       6                     7                     8
-// u64 nparamv[9] = {1, db_size, iterations, split, chunk, scalar, pipeExecTemplateGuid, nextIterTemplateGuid, pipelineTemplateGuid};
+//                  0  1        2           3      4      5       6                     7                     8
+// u64 paramv[9] = {1, db_size, iterations, split, chunk, scalar, pipeExecTemplateGuid, nextIterTemplateGuid, pipelineTemplateGuid};
 ocrGuid_t iterEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 	u64 i;
 	u64 iterations = paramv[2];
@@ -105,6 +118,7 @@ ocrGuid_t iterEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 	// Dependencies for pipeline
 	for (i = 0; i < split; i++)
 		ocrAddDependence((ocrGuid_t) depv[i].guid, pipeExecGuid, i, DB_MODE_ITW);
+
 	//PRINTF("FINISHED ITER\n");
 	return NULL_GUID;
 }
@@ -120,50 +134,68 @@ ocrGuid_t resultsEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 	int verify = (int) paramv[4];
 	STREAM_TYPE scalar = (STREAM_TYPE) paramv[5];
 	int verbose = (int) paramv[6];
-	STREAM_TYPE totalsum[iterations], timingsum[iterations][4], cavg, savg, aavg, tavg;
+	STREAM_TYPE totaltiming[4], timings[iterations][4], avg[4];
+
+	// Bytes operated on for each vector operation
+	// bytes[0] = copy, bytes[1] = scale, bytes[2] = add, bytes[3] = triad
+	double bytes[4] = {
+    	2 * sizeof(STREAM_TYPE) * db_size,
+    	2 * sizeof(STREAM_TYPE) * db_size,
+    	3 * sizeof(STREAM_TYPE) * db_size,
+    	3 * sizeof(STREAM_TYPE) * db_size
+   	};
 
 	// Sum partial timings
 	for (i = 0; i < split; i++) {
 		STREAM_TYPE * cur = (STREAM_TYPE *) depv[i].ptr;
 		for (j = 0; j < iterations; j++) {
-			timingsum[j][0] += cur[3 * chunk + 4 * j];
-			timingsum[j][1] += cur[3 * chunk + 4 * j + 1];
-			timingsum[j][2] += cur[3 * chunk + 4 * j + 2];
-			timingsum[j][3] += cur[3 * chunk + 4 * j + 3];
+			timings[j][0] += cur[3 * chunk + 4 * j];
+			timings[j][1] += cur[3 * chunk + 4 * j + 1];
+			timings[j][2] += cur[3 * chunk + 4 * j + 2];
+			timings[j][3] += cur[3 * chunk + 4 * j + 3];
 		}
 	}
 
-	// Report results
-	PRINTF("Timing Results:\n");
+	// Set initial min and max values for each vector operation to first trial
+	STREAM_TYPE min[4] = {timings[0][0], timings[0][1], timings[0][2], timings[0][3]};
+	STREAM_TYPE max[4] = {timings[0][0], timings[0][1], timings[0][2], timings[0][3]};
+
+	// Sum timings from each trial
 	for (i = 0; i < iterations; i++) {
+		// Print results from each trial if verbose is specified
 		if (verbose) {
 			PRINTF("TRIAL %d:\n", i + 1);
-			PRINTF("COPY: %fs\n", timingsum[i][0]);
-			PRINTF("SCALE: %fs\n", timingsum[i][1]);
-			PRINTF("ADD: %fs\n", timingsum[i][2]);
-			PRINTF("TRIAD: %fs\n", timingsum[i][3]);
 		}
-		totalsum[0] += timingsum[i][0];
-		totalsum[1] += timingsum[i][1];
-		totalsum[2] += timingsum[i][2];
-		totalsum[3] += timingsum[i][3];
+		totaltiming[0] += timings[i][0];
+		totaltiming[1] += timings[i][1];
+		totaltiming[2] += timings[i][2];
+		totaltiming[3] += timings[i][3];
+		for (j = 0; j < 4; j++) {
+			if (timings[i][j] > max[j]) {
+				max[j] = timings[i][j];
+			}
+			if (timings[i][j] < min[j]) {
+				min[j] = timings[i][j];
+			}
+		}
 	}
-	cavg = totalsum[0] / iterations;
-	savg = totalsum[1] / iterations;
-	aavg = totalsum[2] / iterations;
-	tavg = totalsum[3] / iterations;
-	PRINTF("COPY:  AVERAGE Time Per chunk: %f s\n", cavg / split);
-	PRINTF("COPY:  AVERAGE Time Per Trial: %f s\n", cavg);
-	PRINTF("SCALE: AVERAGE Time Per chunk: %f s\n", savg / split);
-	PRINTF("SCALE: AVERAGE Time Per Trial: %f s\n", savg);
-	PRINTF("ADD:   AVERAGE Time Per chunk: %f s\n", aavg / split);
-	PRINTF("ADD:   AVERAGE Time Per Trial: %f s\n", aavg);
-	PRINTF("TRIAD: AVERAGE Time Per chunk: %f s\n", tavg / split);
-	PRINTF("TRIAD: AVERAGE Time Per Trial: %f s\n", tavg);
+
+	// Compute averages
+	for (i = 0; i < 4; i++)
+		avg[i] = totaltiming[i] / iterations;
+
+	// Print overall results from iterations
+	PRINTF(HLINE);
+	PRINTF("Function    Best Rate MB/s  Avg time     Min time     Max time\n");
+	for (i = 0; i < 4; i++) {
+		PRINTF("%s%12.1f  %11.6f  %11.6f  %11.6f\n", label[i], 1.0E-06 * bytes[i] / avg[i],
+													 avg[i], min[i], max[i]);
+	}
+	PRINTF(HLINE);
 
 	// Export to CSV
 	if (strcmp((char *) depv[split].ptr, "") != 0) 
-		export_csv((char *) depv[split].ptr, db_size, iterations, split, scalar, timingsum, cavg, savg, aavg, tavg);
+		export_csv((char *) depv[split].ptr, db_size, iterations, split, scalar, timings, avg);
 
 	// Verify results
 	if (verify) {
@@ -188,17 +220,14 @@ ocrGuid_t resultsEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 		PRINTF("After %d Iterations:\n", iterations);
 		for (i = 0; i < split; i++) {
 			STREAM_TYPE * cur = (STREAM_TYPE *) depv[i].ptr;
-			//PRINTF("Expected a: %f, Actual a: %f\n", ai, cur[0]);
 			if (cur[0] != ai) {
 				diff += 1;
 				PRINTF("Expected a: %f, Actual a: %f\n", ai, cur[0]);
 			}
-			//PRINTF("Expected b: %f, Actual b: %f\n", bi, cur[chunk]);
 			if (cur[chunk] != bi) {
 				diff += 1;
 				PRINTF("Expected b: %f, Actual b: %f\n", bi, cur[chunk]);
 			}
-			//PRINTF("Expected c: %f, Actual c: %f\n", ci, cur[2 * chunk]);
 			if (cur[2 * chunk] != ci) {
 				diff += 1;
 				PRINTF("Expected c: %f, Actual c: %f\n", ci, cur[2 * chunk]);
@@ -206,6 +235,7 @@ ocrGuid_t resultsEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 		}
 		PRINTF("%d differences between expected and actual\n", diff);
 	}
+
 	ocrShutdown();
 	return NULL_GUID;
 }
@@ -276,6 +306,7 @@ ocrGuid_t mainEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 	ocrAddDependence(iterDone, resultsGuid, split + 1, DB_MODE_RO);
 	for (i = 0; i < split; i++)
 		ocrAddDependence(dataGuids[i], iterGuid, i, DB_MODE_ITW);
+
 	//PRINTF("FINISHED MAIN\n");
 	return NULL_GUID;
 }
