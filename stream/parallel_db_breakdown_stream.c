@@ -164,7 +164,11 @@ ocrGuid_t resultsEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 	for (i = 0; i < iterations; i++) {
 		// Print results from each trial if verbose is specified
 		if (verbose) {
+			PRINTF(HLINE);
 			PRINTF("TRIAL %d:\n", i + 1);
+			PRINTF("Function       Rate MB/s     Time\n");
+			for (j = 0; j < 4; j++)
+				PRINTF("%s%12.1f %11.6f\n", label[j], 1.0E-06 * bytes[i] / timings[i][j], timings[i][j]);
 		}
 		totaltiming[0] += timings[i][0];
 		totaltiming[1] += timings[i][1];
@@ -186,6 +190,7 @@ ocrGuid_t resultsEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 
 	// Print overall results from iterations
 	PRINTF(HLINE);
+	PRINTF("OVERALL:\n");
 	PRINTF("Function    Best Rate MB/s  Avg time     Min time     Max time\n");
 	for (i = 0; i < 4; i++) {
 		PRINTF("%s%12.1f  %11.6f  %11.6f  %11.6f\n", label[i], 1.0E-06 * bytes[i] / avg[i],
