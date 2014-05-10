@@ -14,7 +14,6 @@
 #	define STREAM_TYPE double
 #endif
 
-# define HLINE "---------------------------------------------------------------\n"
 /*
 	NOTES: 
 	-- All results are in MB/s --> 1 MB = 10^6 B, NOT 2^20 B
@@ -35,8 +34,6 @@
 			  triad timing --> [3 * chunk + 4 * iterations + 3]
 */
 
-static char * label[4] = {"Copy:      ", "Scale:     ", "Add:       ", "Triad:     "};
-
 //                  0  1        2           3      4      5       6                     7                     8
 // u64 paramv[9] = {1, db_size, iterations, split, chunk, scalar, pipeExecTemplateGuid, nextIterTemplateGuid, pipelineTemplateGuid};
 ocrGuid_t pipelineEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
@@ -44,30 +41,35 @@ ocrGuid_t pipelineEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 	u64 chunk = paramv[4];
 	STREAM_TYPE scalar = (STREAM_TYPE) paramv[5];
 	STREAM_TYPE * data = (STREAM_TYPE *) depv[0].ptr;
+	STREAM_TYPE start, stop;
 
 	// COPY
-	data[3 * chunk + 4 * (paramv[0] - 1)] = mysecond();
+	start = mysecond();
 	for (i = 0; i < chunk; i++)
 		data[2 * chunk + i] = data[i];
-	data[3 * chunk + 4 * (paramv[0] - 1)] = mysecond() - data[3 * chunk + 4 * (paramv[0] - 1)];
+	stop = mysecond();
+	data[3 * chunk + 4 * (paramv[0] - 1)] = stop - start;
 
 	// SCALE
-	data[3 * chunk + 4 * (paramv[0] - 1) + 1] = mysecond();
+	start = mysecond();
 	for (i = 0; i < chunk; i++)
 		data[chunk + i] = scalar * data[2 * chunk + i];
-	data[3 * chunk + 4 * (paramv[0] - 1) + 1] = mysecond() - data[3 * chunk + 4 * (paramv[0] - 1) + 1];
+	stop = mysecond();
+	data[3 * chunk + 4 * (paramv[0] - 1) + 1] = stop - start;
 
 	// ADD
-	data[3 * chunk + 4 * (paramv[0] - 1) + 2] = mysecond();
+	start = mysecond();
 	for (i = 0; i < chunk; i++)
 		data[2 * chunk + i] = data[i] + data[chunk + i];
-	data[3 * chunk + 4 * (paramv[0] - 1) + 2] = mysecond() - data[3 * chunk + 4 * (paramv[0] - 1) + 2];
+	stop = mysecond();
+	data[3 * chunk + 4 * (paramv[0] - 1) + 2] = stop - start;
 
 	// TRIAD
-	data[3 * chunk + 4 * (paramv[0] - 1) + 3] = mysecond();
+	start = mysecond();
 	for (i = 0; i < chunk; i++)
 		data[i] = data[chunk + i] + scalar * data[2 * chunk + i];
-	data[3 * chunk + 4 * (paramv[0] - 1) + 3] = mysecond() - data[3 * chunk + 4 * (paramv[0] - 1) + 3];
+	stop = mysecond();
+	data[3 * chunk + 4 * (paramv[0] - 1) + 3] = stop - start;
 
 	//PRINTF("FINISHED PIPELINE\n");
 	return NULL_GUID;
@@ -144,7 +146,7 @@ ocrGuid_t resultsEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
     	3 * sizeof(STREAM_TYPE) * db_size,
     	3 * sizeof(STREAM_TYPE) * db_size
    	};
-
+	
 	// Sum partial timings
 	for (i = 0; i < split; i++) {
 		STREAM_TYPE * cur = (STREAM_TYPE *) depv[i].ptr;
@@ -156,16 +158,16 @@ ocrGuid_t resultsEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 		}
 	}
 
-	// Set initial min and max values for each vector operation to first trial
+	// Set initial min and max values for each vector operation to first iteration
 	STREAM_TYPE min[4] = {timings[0][0], timings[0][1], timings[0][2], timings[0][3]};
 	STREAM_TYPE max[4] = {timings[0][0], timings[0][1], timings[0][2], timings[0][3]};
 
-	// Sum timings from each trial
+	// Sum timings from each iteration
 	for (i = 0; i < iterations; i++) {
-		// Print results from each trial if verbose is specified
+		// Print results from each iteration if verbose is specified
 		if (verbose) {
 			PRINTF(HLINE);
-			PRINTF("TRIAL %d:\n", i + 1);
+			PRINTF("ITERATION %d:\n", i + 1);
 			PRINTF("Function       Rate MB/s     Time\n");
 			for (j = 0; j < 4; j++)
 				PRINTF("%s%12.1f %11.6f\n", label[j], 1.0E-06 * bytes[i] / timings[i][j], timings[i][j]);
@@ -175,12 +177,10 @@ ocrGuid_t resultsEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 		totaltiming[2] += timings[i][2];
 		totaltiming[3] += timings[i][3];
 		for (j = 0; j < 4; j++) {
-			if (timings[i][j] > max[j]) {
+			if (timings[i][j] > max[j])
 				max[j] = timings[i][j];
-			}
-			if (timings[i][j] < min[j]) {
+			if (timings[i][j] < min[j])
 				min[j] = timings[i][j];
-			}
 		}
 	}
 
@@ -192,19 +192,20 @@ ocrGuid_t resultsEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 	PRINTF(HLINE);
 	PRINTF("OVERALL:\n");
 	PRINTF("Function    Best Rate MB/s  Avg time     Min time     Max time\n");
-	for (i = 0; i < 4; i++) {
+	for (i = 0; i < 4; i++)
 		PRINTF("%s%12.1f  %11.6f  %11.6f  %11.6f\n", label[i], 1.0E-06 * bytes[i] / avg[i],
 													 avg[i], min[i], max[i]);
-	}
 	PRINTF(HLINE);
 
 	// Export to CSV
 	if (strcmp((char *) depv[split].ptr, "") != 0) 
-		export_csv((char *) depv[split].ptr, db_size, iterations, split, scalar, timings, avg);
+		export_csv((char *) depv[split].ptr, db_size, iterations, split, scalar, timings,
+				   1.0E-06 * bytes[0] / avg[0], 1.0E-06 * bytes[1] / avg[1],
+				   1.0E-06 * bytes[2] / avg[2], 1.0E-06 * bytes[3] / avg[3]);
 
 	// Verify results
 	if (verify) {
-		STREAM_TYPE a = 0, ai, b = 0, bi, c = 0, ci;
+		STREAM_TYPE ai, bi, ci;
 		STREAM_TYPE scalar = (STREAM_TYPE) paramv[5];
 		int diff = 0;
 
@@ -242,6 +243,7 @@ ocrGuid_t resultsEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 	}
 
 	ocrShutdown();
+	//PRINTF("FINISHED RESULTS\n");
 	return NULL_GUID;
 }
 
@@ -282,6 +284,7 @@ ocrGuid_t mainEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 	u64 nparamv[9] = {1, db_size, iterations, split, chunk, scalar, pipeExecTemplateGuid, nextIterTemplateGuid, pipelineTemplateGuid};
 	u64 rparamv[7] = {db_size, iterations, split, chunk, verify, scalar, verbose};
 
+	// Preparing data block
 	// 3 * db_size + 4 * iterations = (3 * chunk + 4 * iterations) * split
 	for (i = 0; i < split; i++) {
 		ocrGuid_t chunkGuid;

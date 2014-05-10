@@ -375,9 +375,11 @@ main(int argc, char ** argv)
     printf(HLINE);
 
 	// Export to CSV File
-	
 	FILE * f = fopen(argv[1], "a");
-	fprintf(f, "%d, %d, %f\n", STREAM_ARRAY_SIZE, NUMTHREADS, total_avg_time);
+	fprintf(f, "%d, %d, %f, %d, %f, %f, %f, %f\n", STREAM_ARRAY_SIZE, NTIMES, SCALAR, NUMTHREADS, 
+                1.0E-06 * bytes[0]/avgtime[0], 1.0E-06 * bytes[1]/avgtime[1]
+                1.0E-06 * bytes[2]/avgtime[2], 1.0E-06 * bytes[3]/avgtime[3]);
+
     /* --- Check Results --- */
     checkSTREAMresults();
     printf(HLINE);
