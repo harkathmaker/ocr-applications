@@ -16,7 +16,7 @@ extern "C" {
 #include <pthread.h>
 }
 
-#define DEBUG_MESSAGES
+//#define DEBUG_MESSAGES
 
 #ifndef __OCR__
 #define __OCR__
@@ -40,6 +40,7 @@ int elementAmount = 0;
 bool isResidualLow = false;
 //If all the residuals are below this amount, the current iterated solution is returned
 double RESIDUAL_LIMIT = 1e-10;
+int finalIterationAmount = 0;
 
 using namespace std;
 
@@ -205,12 +206,21 @@ extern "C" ocrGuid_t printEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t dep
 	t2.tv_usec = usec;
 	double cgOcrTimeElapsed = tock(t2);
 
-	cout << "Solution:" << endl;
-	for (int i = 0; i < rows; i++)
-		cout << r[i] << " ";
-	cout << endl;
+	//cout << "Solution:" << endl;
+	//for (int i = 0; i < rows; i++)
+	//	cout << r[i] << " ";
+	//cout << endl;
 
-	cout << "Time to test Conjugate Gradient OCR: " << cgOcrTimeElapsed << " ms" << endl << endl;
+	cout << "Time to test Conjugate Gradient OCR: " << cgOcrTimeElapsed << " ms" << endl;
+	int flops;
+	if (isSparse == false)
+		flops = ((2*rows*rows + rows*rows) + (finalIterationAmount * (2*rows*rows + 6*rows*rows + 3*rows + 2)));
+	else
+		flops = ((elementAmount*2 + rows*rows) + (finalIterationAmount * (elementAmount*2 + 6*rows*rows + 3*rows + 2)));
+	cout << "Iterations: " << finalIterationAmount << endl << "Iterations per second: " << ((float)finalIterationAmount / (cgOcrTimeElapsed / 1000.)) << endl;
+	if (isSparse == true)
+		cout << "elementAmount: " << elementAmount << endl;
+	cout << "MFLOPS: " << (((float)flops / 1000000.) / (cgOcrTimeElapsed / 1000.)) << endl;
 
 #ifdef DEBUG_MESSAGES
 	cout << "OCR Shutdown..." << endl;
@@ -253,6 +263,7 @@ extern "C" ocrGuid_t CgEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]
 	//If the algorithm is executed K times on the conjugate gradient
 	//problem, return the current result x
 	if ((k == K_ITERATIONS) || (isResidualLow == true)){
+		finalIterationAmount = k;
 		ocrEventSatisfy(result, x_old);
 #ifdef DEBUG_MESSAGES
 		cout << "k = " << k << ". Satisfied result of CgEdt" << endl;
