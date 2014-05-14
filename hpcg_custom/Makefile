@@ -6,6 +6,12 @@ OCR_FLAGS=-L${OCR_INSTALL}/lib -L${PTHREAD_DIR} -I${OCR_INSTALL}/include -locr -
 CLANG=clang++
 LLC=llc
 
+ifdef mic
+        CC := icc
+        CFLAGS := $(CFLAGS) -mmic
+        LDFLAG := $(LDFLAGS) -mmic -L/opt/intel/composer_xe_2013_sp1.1.106/compiler/lib/mic -limf -lsvml -lirng -lintlc
+endif
+
 ifndef OCR_INSTALL
 $(error OCR_INSTALL not set)
 endif

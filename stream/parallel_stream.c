@@ -11,16 +11,27 @@
 #endif
 
 #ifndef STREAM_TYPE
-#	define STREAM_TYPE double
+#	define STREAM_TYPE unsigned double
 #endif
 
 /*
 	NOTES: 
-	One large datablock is used with ranges of indexes corresponding to the following:
-			  a --> [0 to (db_size - 1)]
-			  b --> [db_size to (2 * db_size - 1)]
-			  c --> [2 * db_size to (3 * db_size - 1)]
-		timings --> [3 * db_size to (3 * db_size + iterations - 1)]
+	-- All results are in MB/s --> 1 MB = 10^6 B, NOT 2^20 B
+	-- One large datablock is used with ranges of indexes corresponding to the following:
+			  			 a --> [0 to (db_size - 1)]
+			  			 b --> [db_size to (2 * db_size - 1)]
+			 			 c --> [2 * db_size to (3 * db_size - 1)]
+		  	  copy timing  --> [3 * db_size]
+			  scale timing --> [3 * db_size + 1]
+			  add timing   --> [3 * db_size + 2]
+			  triad timing --> [3 * db_size + 3]
+			  ...
+			  ...
+			  ...
+			  copy timing  --> [3 * db_size + 4 * iterations]
+			  scale timing --> [3 * db_size + 4 * iterations + 1]
+			  add timing   --> [3 * db_size + 4 * iterations + 2]
+			  triad timing --> [3 * db_size + 4 * iterations + 3]
 */
 
 ocrGuid_t pipelineEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
@@ -30,30 +41,37 @@ ocrGuid_t pipelineEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 	u64 end = paramv[paramc - 1];
 	STREAM_TYPE scalar = (STREAM_TYPE) paramv[5];
 	STREAM_TYPE * data = (STREAM_TYPE *) depv[0].ptr;
-	STREAM_TYPE start = 0.0;
+	STREAM_TYPE start, stop;
 
+	// COPY
 	start = mysecond();
-
 	for (i = begin; i < end; i++)
 		data[2 * db_size + i] = data[i];
-	// PRINTF("FINISHED COPY\n");
+	stop = mysecond();
+	data[3 * db_size + 4 * (paramv[0] - 1)] += stop - start;
 
+	// SCALE
+	start = mysecond();
 	for (i = begin; i < end; i++)
 		data[db_size + i] = scalar * data[2 * db_size + i];
-	// PRINTF("FINISHED SCALE\n");
+	stop = mysecond();
+	data[3 * db_size + 4 * (paramv[0] - 1) + 1] += stop - start;
 
+	// ADD
+	start = mysecond();
 	for (i = begin; i < end; i++)
 		data[2 * db_size + i] = data[i] + data[db_size + i];
-	// PRINTF("FINISHED ADD\n");
+	stop = mysecond();
+	data[3 * db_size + 4 * (paramv[0] - 1) + 2] += stop - start;
 
+	// TRIAD
+	start = mysecond();
 	for (i = begin; i < end; i++)
 		data[i] = data[db_size + i] + scalar * data[2 * db_size + i];
-	// PRINTF("FINISHED TRIAD\n");
+	stop = mysecond();
+	data[3 * db_size + 4 * (paramv[0] - 1) + 3] += stop - start;
 
-	data[3 * db_size + paramv[0] - 1] += mysecond() - start;
-
-	//printf("trial timing %llu = %f\n", paramv[0], data[3 * db_size + paramv[0] - 1]);
-	// PRINTF("FINISHED PIPELINE\n");
+	//PRINTF("FINISHED PIPELINE\n");
 	return NULL_GUID;
 }
 
@@ -78,6 +96,8 @@ ocrGuid_t pipeExecEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 				 EDT_PROP_FINISH, NULL_GUID, NULL);
 		ocrAddDependence(dataGuid, pipelineGuid, 0, DB_MODE_ITW);
 	}
+
+	//PRINTF("FINISHED PIPEEXEC\n");
 	return NULL_GUID;
 }
 
@@ -104,7 +124,8 @@ ocrGuid_t iterEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 
 	// Dependencies for pipeline
 	ocrAddDependence(dataGuid, pipeExecGuid, 0, DB_MODE_ITW);
-	// PRINTF("FINISHED ITER\n");
+
+	//PRINTF("FINISHED ITER\n");
 	return NULL_GUID;
 }
 
@@ -119,35 +140,79 @@ ocrGuid_t resultsEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 	STREAM_TYPE scalar = (STREAM_TYPE) paramv[4];
 	int verbose = (int) paramv[5];
 	STREAM_TYPE * data = (STREAM_TYPE *) depv[0].ptr;
-	STREAM_TYPE totalsum, timingsum[iterations], avg;
+	STREAM_TYPE totaltiming[4], timings[iterations][4], min[4], avg[4], max[4];
 
-	// 3*db_size + iteration number 
+	double bytes[4] = {
+    	2 * sizeof(STREAM_TYPE) * db_size,
+    	2 * sizeof(STREAM_TYPE) * db_size,
+    	3 * sizeof(STREAM_TYPE) * db_size,
+    	3 * sizeof(STREAM_TYPE) * db_size
+   	};
 
-	PRINTF("Timing Results:\n");
+	// Sum timings from each iteration
 	for (i = 0; i < iterations; i++) {
-		timingsum[i] += data[3 * db_size + i];
-		if (verbose)
-			PRINTF("TRIAL %d: %f s\n", i + 1, timingsum[i]);
-		totalsum += timingsum[i];
-	}
-	avg = totalsum / iterations;
-	if (verbose)
-		PRINTF("AVERAGE Time Per chunk: %f s\n", avg / split);
-	PRINTF("AVERAGE Time Per Trial: %f s\n", avg);
+		// Copy iteration timings to local data structure
+		timings[i][0] += data[3 * db_size + 4 * i];
+		timings[i][1] += data[3 * db_size + 4 * i + 1];
+		timings[i][2] += data[3 * db_size + 4 * i + 2];
+		timings[i][3] += data[3 * db_size + 4 * i + 3];
 
-	if (strcmp((char *) depv[1].ptr, "") != 0) 
-		export_csv((char *) depv[1].ptr, db_size, iterations, split, scalar, timingsum, avg);
-
-	if (verify) {
-		STREAM_TYPE a = 0, ai, b = 0, bi, c = 0, ci;
-		STREAM_TYPE scalar = (STREAM_TYPE) paramv[4];
-
-		// Sum actual values
-		for (i = 0; i < split; i++) {
-			a += data[i];
-			b += data[db_size + i];
-			c += data[2 * db_size + i];
+		// Print results from each iteration if verbose is specified
+		if (verbose) {
+			PRINTF(HLINE);
+			PRINTF("ITERATION %d:\n", i + 1);
+			PRINTF("Function       Rate MB/s     Time\n");
+			for (j = 0; j < 4; j++)
+				PRINTF("%s%12.1f %11.6f\n", label[j], 1.0E-06 * bytes[i] / timings[i][j], timings[i][j]);
 		}
+
+		// Add iteration to running sums
+		totaltiming[0] += timings[i][0];
+		totaltiming[1] += timings[i][1];
+		totaltiming[2] += timings[i][2];
+		totaltiming[3] += timings[i][3];
+
+		// Set initial min and max values for each vector operation to first iteration
+		if (i == 0) {
+			for (j = 0; j < 4; j++) {
+				min[j] = timings[i][j];
+				max[j] = timings[i][j];
+			}
+		}
+
+		// Compare current max/min to current iteration
+		for (j = 0; j < 4; j++) {
+			if (timings[i][j] > max[j])
+				max[j] = timings[i][j];
+			if (timings[i][j] < min[j])
+				min[j] = timings[i][j];
+		}
+	}
+
+	// Compute averages
+	for (i = 0; i < 4; i++)
+		avg[i] = totaltiming[i] / iterations;
+
+	// Print overall results from iterations
+	PRINTF(HLINE);
+	PRINTF("OVERALL:\n");
+	PRINTF("Function    Best Rate MB/s  Avg time     Min time     Max time\n");
+	for (i = 0; i < 4; i++)
+		PRINTF("%s%12.1f  %11.6f  %11.6f  %11.6f\n", label[i], 1.0E-06 * bytes[i] / avg[i],
+													 avg[i], min[i], max[i]);
+	PRINTF(HLINE);
+
+	// Export to CSV
+	if (strcmp((char *) depv[split].ptr, "") != 0) 
+		export_csv((char *) depv[split].ptr, db_size, iterations, split, scalar, timings,
+				   1.0E-06 * bytes[0] / avg[0], 1.0E-06 * bytes[1] / avg[1],
+				   1.0E-06 * bytes[2] / avg[2], 1.0E-06 * bytes[3] / avg[3]);
+
+	// Verify results
+	if (verify) {
+		STREAM_TYPE ai, bi, ci;
+		STREAM_TYPE scalar = (STREAM_TYPE) paramv[4];
+		int diff = 0;
 
 		// Reproduce initializations
 		ai = 1.0;
@@ -162,18 +227,27 @@ ocrGuid_t resultsEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 			ai = bi + scalar * ci;
 		}
 
+		// Compare against actual
 		PRINTF("After %d Iterations:\n", iterations);
-		if ((split * ai - a + split * bi - b + split * ci - c) == 0)
-			PRINTF("No differences between expected and actual\n");
-		else  
-			PRINTF("Expected a: %f, Actual a: %f\n"
-				   "Expected b: %f, Actual b: %f\n"
-				   "Expected c: %f, Actual c: %f\n"
-				   "Note: Expected values are multiplied by split (i.e. a * split)\n"
-					"     Actual values are sum of split number of first elements", 
-					split * ai, a, split * bi, b, split * ci, c);
+		for (i = 0; i < split; i++) {
+			if (data[i] != ai) {
+				diff += 1;
+				PRINTF("Expected a: %f, Actual a: %f\n", ai, data[i]);
+			}
+			if (data[db_size + i] != bi) {
+				diff += 1;
+				PRINTF("Expected b: %f, Actual b: %f\n", bi, data[db_size + i]);
+			}
+			if (data[2 * db_size + i] != ci) {
+				diff += 1;
+				PRINTF("Expected c: %f, Actual c: %f\n", ci, data[2 * db_size + i]);
+			}
+		}
+		PRINTF("%d differences between expected and actual\n", diff);
 	}
+
 	ocrShutdown();
+	//PRINTF("FINISHED RESULTS\n");
 	return NULL_GUID;
 }
 
@@ -194,7 +268,7 @@ ocrGuid_t mainEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 	int verbose;
 
 	// Parse getopt commands, shutdown and exit if help is selected
-	if (parseParallelOptions(argc, argv,  &db_size, efile, &iterations, &split, &chunk, &verify, &scalar, &verbose)) {
+	if (parseOptions(argc, argv,  &db_size, efile, &iterations, &split, &chunk, &verify, &scalar, &verbose)) {
 		ocrShutdown();
 		return NULL_GUID;
 	}
@@ -214,7 +288,7 @@ ocrGuid_t mainEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 	u64 rparamv[6] = {db_size, iterations, split, verify, scalar, verbose};
 
 	// Formatting datablock
-	DBCREATE(&dataGuid,(void **) &dataArray, sizeof(STREAM_TYPE) * (3 * db_size + iterations), 0, NULL_GUID, NO_ALLOC);
+	DBCREATE(&dataGuid,(void **) &dataArray, sizeof(STREAM_TYPE) * (3 * db_size + 4 * iterations), 0, NULL_GUID, NO_ALLOC);
 	for (i = 0; i < db_size; i++){
 		dataArray[i] = 1.0;
 		dataArray[db_size + i] = 2.0;
@@ -238,6 +312,7 @@ ocrGuid_t mainEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 	ocrAddDependence(efileGuid, resultsGuid, 1, DB_MODE_RO);
 	ocrAddDependence(iterDone, resultsGuid, 2, DB_MODE_RO);
 	ocrAddDependence(dataGuid, iterGuid, 0, DB_MODE_ITW);
-	// PRINTF("FINISHED MAIN\n");
+
+	//PRINTF("FINISHED MAIN\n");
 	return NULL_GUID;
 }
