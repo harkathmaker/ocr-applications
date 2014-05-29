@@ -1,6 +1,6 @@
 /*
  * File:   main.cpp
- * Author: commlaptop
+ * Author: Grady W. Ellison
  *
  * Created on February 7, 2014, 1:38 PM
  */
@@ -16,7 +16,10 @@ extern "C" {
 #include <pthread.h>
 }
 
-#define DEBUG_MESSAGES
+//Define DEBUG_MESSAGES to view debugging messages on what the program is doing.
+//The messages can (and will) print out of order, but it will give an idea on
+//what is going on in the program
+//#define DEBUG_MESSAGES
 
 #ifndef __OCR__
 #define __OCR__
@@ -38,12 +41,18 @@ bool isSparse = false;
 int elementAmount = 0;
 //Whether the residual is low enough to trust the current iterated solution
 bool isResidualLow = false;
-//If all the residuals are below this amount, the current iterated solution is returned
+//If all the residuals in the residual matrix are below this amount, the current iterated solution is returned
 double RESIDUAL_LIMIT = 1e-10;
+int finalIterationAmount = 0;
 
 using namespace std;
 
-// Generates a pseudorandom double from fMin to fMax
+//Generates a pseudorandom double from fMin to fMax
+//Parameters:
+//  fMin: Lowest value that the random double can be
+//  fMin: Highest value that the random double can be
+//Output:
+//  Random double from fMin to fMax
 double fRand(double fMin, double fMax)
 {
     double f = (double)rand() / RAND_MAX;
@@ -51,10 +60,14 @@ double fRand(double fMin, double fMax)
 }
 
 //Multiplies datablock A by a constant value and returns a new datablock R as the result
-//Parameters: A_rows, A_columns
-//Dependencies: A_db, scalar_event (double)
-//Output: result
-
+//Parameters:
+//  A_rows: Number of rows in matrix A
+//  A_columns: Number of columns in matrix A
+//Dependencies:
+//  A_db: Matrix A
+//  scalar: Scalar double constant to scale A by
+//Output:
+//  Matrix A that is scaled by the cosntant scalar.
 extern "C" ocrGuid_t scaleEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[])
 {
 	double *a = (double*) depv[0].ptr;
@@ -67,10 +80,16 @@ extern "C" ocrGuid_t scaleEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t dep
 }
 
 //Multiplies datablock A by datablock B and returns a new datablock R as the result
-//Parameters: A_rows, A_columns, B_rows, B_columns
+//Parameters:
+//  A_rows: Number of rows in matrix A
+//  A_columns: Number of columns in matrix A
+//  B_rows: Number of rows in matrix B
+//  B_columns: Number of columns in matrix B
 //Dependencies: A_db, B_db
-//Output: result
-
+//  A_db: Matrix A
+//  B_db: Matrix B
+//Output:
+//  The resulting matrix of dense matrix A multiplied by dense matrix B.
 extern "C" ocrGuid_t productEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[])
 {
 	ocrGuid_t dataBlock = matrixProduct((double*) depv[0].ptr, (int) paramv[0], (int) paramv[1],
@@ -81,11 +100,18 @@ extern "C" ocrGuid_t productEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t d
 	return dataBlock;
 }
 
-//Multiplies sparse datablock matrix A by datablock B and returns a new datablock R as the result
-//Parameters: A_rows, A_columns, B_rows, B_columns
-//Dependencies: A_db, A_elementList, B_db
-//Output: result
-
+//Multiplies sparse datablock matrix A by dense datablock matrix B and returns a new datablock R as the result
+//Parameters:
+//  A_rows: Number of rows in matrix A
+//  A_columns: Number of columns in matrix A
+//  B_rows: Number of rows in matrix B
+//  B_columns: Number of columns in matrix B
+//Dependencies:
+//  A_db: Scalar matrix A
+//  A_elementList: Element list for sparse matrix A. Contains positions on the values for matrix A.
+//  B_db: Dense Matrix B
+//Output:
+// The resulting dense matrix of sparse matrix A multiplied by dense matrix B
 extern "C" ocrGuid_t productEdt_sparse(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[])
 {
 	ocrGuid_t dataBlock = matrixProduct_sparse((double*) depv[0].ptr, (unsigned int*) depv[1].ptr,
@@ -98,10 +124,13 @@ extern "C" ocrGuid_t productEdt_sparse(u32 paramc, u64* paramv, u32 depc, ocrEdt
 }
 
 //Transposes datablock A and returns a new datablock R as the result
-//Parameters: A_rows, A_columns
-//Dependencies: A_db
-//Output: result
-
+//Parameters:
+//  A_rows: Number of rows in matrix A
+//  A_columns: Number of columns in matrix A
+//Dependencies:
+//  A_db: Scalar matrix A
+//Output:
+//  The resulting matrix that is a transpose of matrix A
 extern "C" ocrGuid_t transposeEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[])
 {
 	ocrGuid_t dataBlock = matrixTranspose((double*) depv[0].ptr, (int) paramv[0], (int) paramv[1]);
@@ -112,10 +141,14 @@ extern "C" ocrGuid_t transposeEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t
 }
 
 //Adds datablock A by datablock B and returns a new datablock R as the result
-//Parameters: A_rows, A_columns
-//Dependencies: A_db, B_db (A and B need same rows/columns)
-//Output: result
-
+//Parameters:
+//  A_rows: Number of rows in matrix A
+//  A_columns: Number of columns in matrix A
+//Dependencies: (A and B need same rows/columns)
+//  A_db: Matrix A
+//  B_db: Matrix B
+//Output:
+//  The resulting matrix from matrix A + matrix B.
 extern "C" ocrGuid_t addEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[])
 {
 	ocrGuid_t dataBlock = matrixAdd((double*) depv[0].ptr, (int) paramv[0], (int) paramv[1], (double*) depv[1].ptr);
@@ -126,10 +159,14 @@ extern "C" ocrGuid_t addEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[
 }
 
 //Subtracts datablock A by datablock B and returns a new datablock R as the result
-//Parameters: A_rows, A_columns
-//Dependencies: A_db, B_db (A and B need same rows/columns)
-//Output: result
-
+//Parameters:
+//  A_rows: Number of rows in matrix A
+//  A_columns: Number of columns in matrix A
+//Dependencies: (A and B need same rows/columns)
+//  A_db: Matrix A
+//  B_db: Matrix B
+//Output:
+//  The resulting matrix from matrix A - matrix B.
 extern "C" ocrGuid_t subtractEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[])
 {
 	ocrGuid_t dataBlock = matrixSubtract((double*) depv[0].ptr, (int) paramv[0], (int) paramv[1],
@@ -141,10 +178,13 @@ extern "C" ocrGuid_t subtractEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t 
 }
 
 //Divides datablock A by datablock B and returns a new datablock R as the result
-//Parameters: None
-//Dependencies: A_db (double), B_db (double)
-//Output: result
-
+//Parameters:
+//  None
+//Dependencies:
+//  A_db: Constant double A
+//  B_db: Constant double B
+//Output:
+//  The resulting double from double A divided by double B
 extern "C" ocrGuid_t divideEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[])
 {
 	double* r;
@@ -161,10 +201,13 @@ extern "C" ocrGuid_t divideEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t de
 
 //Checks if the residuals are low enough to trust the current iterated solution
 //and sets isResidualLow to true if it is. Satisfies residualEvent on completion.
-//Parameters: R_rows, residualEvent
+//Parameters:
+//  R_rows: The amount of rows in the residual matrix. The columns of the residual matrix is always 1.
+//  residualEvent: Edt event that is satisfied on completion of this Edt
 //Dependencies: R_db (double)
-//Output: None
-
+//  R_db: The residual matrix
+//Output:
+//  Sets isResidualLow to true if residuals are low enough. It is set to false otherwise.
 extern "C" ocrGuid_t residualEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[])
 {
 	double* r = (double*) depv[0].ptr;
@@ -185,11 +228,14 @@ extern "C" ocrGuid_t residualEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t 
 }
 
 //Prints the contents of a matrix datablock and stops a given timer for benchmarking purposes.
-//Parameters: x_rows, t1.sec, t1.usec
-//Dependencies: A_db
-//Output: NULL_GUID
-//Not thread safe
-
+//Parameters:
+//  x_rows: The amount of rows in the result matrix
+//  t1.sec: A time_t value in seconds
+//  t1.usec: A time_t value in milliseconds
+//Dependencies:
+//  A_db: The result matrix
+//Output:
+//  Prints the values of the result matrix as well as some benchmarking data
 extern "C" ocrGuid_t printEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[])
 {
 #ifdef DEBUG_MESSAGES
@@ -210,7 +256,16 @@ extern "C" ocrGuid_t printEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t dep
 		cout << r[i] << " ";
 	cout << endl;
 
-	cout << "Time to test Conjugate Gradient OCR: " << cgOcrTimeElapsed << " ms" << endl << endl;
+	cout << "Time to test Conjugate Gradient OCR: " << cgOcrTimeElapsed << " ms" << endl;
+	int flops;
+	if (isSparse == false)
+		flops = ((2*rows*rows + rows*rows) + (finalIterationAmount * (2*rows*rows + 6*rows*rows + 3*rows + 2)));
+	else
+		flops = ((elementAmount*2 + rows*rows) + (finalIterationAmount * (elementAmount*2 + 6*rows*rows + 3*rows + 2)));
+	cout << "Iterations: " << finalIterationAmount << endl; //<< "Iterations per second: " << ((float)finalIterationAmount / (cgOcrTimeElapsed / 1000.)) << endl;
+	//if (isSparse == true)
+	//	cout << "elementAmount: " << elementAmount << endl;
+	cout << "MFLOPS: " << (((float)flops / 1000000.) / (cgOcrTimeElapsed / 1000.)) << endl;
 
 #ifdef DEBUG_MESSAGES
 	cout << "OCR Shutdown..." << endl;
@@ -219,11 +274,25 @@ extern "C" ocrGuid_t printEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t dep
 	return NULL_GUID;
 }
 
-//Performs the conjugate gradient algorithm with matrix A, x, and B
-//Parameters: A_rows, A_columns, X_old_rows, X_old_columns, k, doneEvent
+//Performs the conjugate gradient algorithm with matrix A, x, and B. Will
+//recursively call itself for a number of iterations until the residual matrix
+//contains values below a set threshold, which is when the solution matrix is returned
+//Parameters:
+//  A_rows: Number of rows in matrix A
+//  A_columns: Number of columns in matrix A
+//  X_old_rows: Number of rows in matrix X (and B)
+//  X_old_columns: Number of columns in matrix X (and B)
+//  k: Number of algorithm iterations currently processed
+//  doneEvent: Event that is satisfied when the conjugate gradient algorithm is finished
 //Dependencies: A_db, B_db, X_old_db, P_old_db, R_old_db, elementList (if A_db is sparse)
-//Output: Guid data block with result of x_new after K_ITERATIONS
-
+//  A_db: Matrix A
+//  B_db: Matrix B
+//  X_old_db: Matrix X
+//  P_old_db: Residual matrix
+//  A_db: Matrix A
+//  B_db: Matrix B
+//Output:
+//  The solution matrix
 extern "C" ocrGuid_t CgEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[])
 {
 	//Edt parameters
@@ -253,6 +322,7 @@ extern "C" ocrGuid_t CgEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]
 	//If the algorithm is executed K times on the conjugate gradient
 	//problem, return the current result x
 	if ((k == K_ITERATIONS) || (isResidualLow == true)){
+		finalIterationAmount = k;
 		ocrEventSatisfy(result, x_old);
 #ifdef DEBUG_MESSAGES
 		cout << "k = " << k << ". Satisfied result of CgEdt" << endl;
@@ -671,7 +741,8 @@ extern "C" ocrGuid_t CgEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]
 	return NULL_GUID;
 }
 
-//Sets up the conjugate gradient algorithm for matrices A, x, and B
+//DEPRECATED: Sets up the conjugate gradient algorithm for matrices A, x, and B
+//without OCR. Recently untested and may not work. Currently unused.
 Matrix* conjugateGradient(Matrix *A, Matrix *x, Matrix *B)
 {
 	Matrix *x_new;
@@ -733,7 +804,14 @@ Matrix* conjugateGradient(Matrix *A, Matrix *x, Matrix *B)
 	return x_new;
 }
 
-//Sets up the conjugate gradient algorithm Edt for matrices A, x, and B
+//Sets up the conjugate gradient algorithm Edt for matrices A, x, and B, where A is dense
+//Parameters:
+//  A_m: Matrix A
+//  x_m: Matrix x
+//  B_m: Matrix B
+//  result: Where the result matrix is stored
+//Output:
+//  None
 void conjugateGradient_OCR(Matrix *A_m, Matrix *x_m, Matrix *B_m, ocrGuid_t result)
 {
 	//Copies data from matrices A, x, B to their respective datablocks
@@ -846,7 +924,15 @@ void conjugateGradient_OCR(Matrix *A_m, Matrix *x_m, Matrix *B_m, ocrGuid_t resu
 #endif
 }
 
-//Sets up the conjugate gradient algorithm Edt for matrices A, x, and B
+//Sets up the conjugate gradient algorithm Edt for matrices A, x, and B, where A is sparse
+//Parameters:
+//  A: Matrix A
+//  elementList: Element list for sparse matrix A. Contains positions on the values for matrix A.
+//  x_m: Matrix x
+//  B_m: Matrix B
+//  result: Where the result matrix is stored
+//Output:
+//  None
 void conjugateGradient_OCR_sparse(ocrGuid_t A, ocrGuid_t elementList, Matrix *x_m, Matrix *B_m, ocrGuid_t result)
 {
 	//Copies data from matrices x, B to their respective datablocks
@@ -959,6 +1045,11 @@ void conjugateGradient_OCR_sparse(ocrGuid_t A, ocrGuid_t elementList, Matrix *x_
 }
 
 //Reads a file containing data values and creates a matrix datablock from the data values
+//Parameters:
+//  fileName: The name of the matrix datafile
+//  A: Where the loaded matrix is stored
+//Output:
+//  0 on success, -1 if file cannot be opened
 int readMatrixFromFile(const char* fileName, Matrix &A)
 {
 	ifstream f;

@@ -35,7 +35,8 @@ compile_pp:
 
 run:
 #	octave ./cgmatrix.m
-	./$(PROG).exe $(OCR_RUN_FLAGS) 0 cg500_s.mat 500
+	./$(PROG).exe $(OCR_RUN_FLAGS) 0 cg500.mat 500
+	./$(PROG).exe $(OCR_RUN_FLAGS) 1 cg500.mat 500
 
 clean:
 	-rm -Rf *.o *.bc $(PROG).exe
