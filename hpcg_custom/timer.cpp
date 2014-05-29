@@ -1,3 +1,10 @@
+/*
+ * File:   main.cpp
+ * Author: Grady W. Ellison
+ *
+ * Created on February 7, 2014, 1:38 PM
+ */
+
 #include "timer.h"
 
 using namespace std;

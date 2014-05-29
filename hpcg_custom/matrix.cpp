@@ -1,6 +1,6 @@
 /*
  * File:   matrix.cpp
- * Author: commlaptop
+ * Author: Grady W. Ellison
  *
  * Created on February 7, 2014, 1:39 PM
  */
