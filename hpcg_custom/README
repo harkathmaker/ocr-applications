@@ -1,0 +1,46 @@
+Welcome to the power of Open Community Runtime (OCR) high-performance computing.
+
+This program tests HPCG, the High Performance Conjugate Gradient (or just Conjugate Gradient)
+against the OCR framework.
+
+The Conjugate Gradient is an algorithm to solve the linear equation Ax = b for 
+a matrix A that is symmetric and positive-definite, where A and b are known beforehand.
+The algorithm that this program uses is from wikipedia.org, the "most commonly used algorithm."
+The end result is X, with k+1. There is no preconditioner involved. The initial guess X is all
+values of 1.0f. Matrix b's values are set from -10.0f to 10.0f at random.
+
+Link to picture of algorithm: http://upload.wikimedia.org/math/f/4/7/f47052924a9059c92dfb2040c30c3832.png
+
+Files:
+	main.cpp        Main program file
+    matrix.cpp      Program that contains a matrix class/methods
+    matrix.h
+	timer.cpp       Contains simple benchmarking timer functions
+	timer.h
+	Makefile        The makefile used to compile the HCPG program
+	README          This file
+    cg100.mat       Matrix data in ASCII files. Passed into the HPCG program.
+	cg200.mat
+	...
+    cgmatrix.m      Generates matrix data in ASCII files.
+
+Instructions to setup/compile:
+	1. Install the make tools and OCR dependencies for your appropriate Linux distribution.
+    2. Install OCR. After installing OCR, make sure OCR_CONFIG and OCR_INSTALL are defined.
+    3. make clean; make compile. If you get errors, go to step 1.
+    4. Install Octave or Matlab.
+    5. Open cgmatrix.m with your favorite text editor. Configure the parameters to your liking.
+    6. Use Octave or Matlab to run the cgmatrix.m script. This will output a matrix data ASCII file.
+       Example: octave ./cgmatrix.m
+ 
+Running the program:
+	./hpcg.exe -ocr:cfg ${OCR_CONFIG} isSparse datafile.mat n
+	${OCR_CONFIG}: The path to your OCR configuration file. Do not use quotes.
+    isSparse: Whether A is to be treated as a sparse matrix. Must be an integer.
+	          If isSparse is 0: Matrix is treated as a dense matrix
+              If isSparse is 1: Matrix is treated as a sparse matrix
+    datafile.mat: Your ASCII file of matrix data is passed in here as a filename. Do not use quotes.
+    n: The size (in rows) of your matrix data file. Must be an integer greater than 0.
+
+    Example: ./hpcg.exe -ocr:cfg /home/foobar/ocr/install/x86-pthread-x86 0 cg500.mat 500
+    
