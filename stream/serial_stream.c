@@ -2,8 +2,8 @@
 #include "options.h"
 #include <stdio.h>
 #include <stdlib.h>
-//#include <string.h>
 #include <unistd.h>
+#include <time.h>
 
 #ifndef __OCR__
 #	define __OCR__
@@ -85,24 +85,26 @@ ocrGuid_t resultsEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 	STREAM_TYPE scalar = (STREAM_TYPE) paramv[3];
 	int verbose = (int) paramv[4];
 	STREAM_TYPE * data = (STREAM_TYPE *) depv[0].ptr;
-	STREAM_TYPE totaltiming[4], timings[iterations][4], min[4], avg[4], max[4];
+	STREAM_TYPE timings[iterations][4], min[4], avg[4], max[4];
+	STREAM_TYPE totaltiming[4] = {0.0};
 
 	// Bytes operated on for each vector operation
 	// bytes[0] = copy, bytes[1] = scale, bytes[2] = add, bytes[3] = triad
 	double bytes[4] = {
-    	2 * sizeof(STREAM_TYPE) * db_size,
-    	2 * sizeof(STREAM_TYPE) * db_size,
-    	3 * sizeof(STREAM_TYPE) * db_size,
-    	3 * sizeof(STREAM_TYPE) * db_size
+    		2 * sizeof(STREAM_TYPE) * db_size,
+    		2 * sizeof(STREAM_TYPE) * db_size,
+    		3 * sizeof(STREAM_TYPE) * db_size,
+    		3 * sizeof(STREAM_TYPE) * db_size
    	};
 
 	// Sum timings from each iteration
 	for (i = 0; i < iterations; i++) {
+
 		// Copy iterations to local data structure
-		timings[i][0] += data[3 * db_size + 4 * i];
-		timings[i][1] += data[3 * db_size + 4 * i + 1];
-		timings[i][2] += data[3 * db_size + 4 * i + 2];
-		timings[i][3] += data[3 * db_size + 4 * i + 3];
+		timings[i][0] = data[3 * db_size + 4 * i];
+		timings[i][1] = data[3 * db_size + 4 * i + 1];
+		timings[i][2] = data[3 * db_size + 4 * i + 2];
+		timings[i][3] = data[3 * db_size + 4 * i + 3];
 
 		// Print results from each iteration if verbose is specified
 		if (verbose) {
@@ -145,8 +147,7 @@ ocrGuid_t resultsEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 	PRINTF("OVERALL:\n");
 	PRINTF("Function    Best Rate MB/s  Avg time     Min time     Max time\n");
 	for (i = 0; i < 4; i++)
-		PRINTF("%s%12.1f  %11.6f  %11.6f  %11.6f\n", label[i], 1.0E-06 * bytes[i] / avg[i],
-													 avg[i], min[i], max[i]);
+		PRINTF("%s%12.1f  %11.6f  %11.6f  %11.6f\n", label[i], 1.0E-06 * bytes[i] / min[i], avg[i], min[i], max[i]);
 	PRINTF(HLINE);
 
 	// Export to CSV
