@@ -34,7 +34,8 @@ extern "C" {
 //Matrix size n by n
 unsigned int MATRIX_N = 500;
 //Amount of iterations of the algorithm on a given problem
-unsigned int K_ITERATIONS = MATRIX_N * 2;
+//unsigned int K_ITERATIONS = MATRIX_N * 2;
+unsigned int K_ITERATIONS = 20;
 //Whether to treat A as a sparse matrix
 bool isSparse = false;
 //Amount of elements in sparse matrix A
@@ -47,6 +48,7 @@ int finalIterationAmount = 0;
 
 using namespace std;
 
+#define DEBUG_MESSAGES 1
 #ifndef DEBUG_LOG
 
 // If DEBUG_MESSAGES turned off, suppress print messages
@@ -149,7 +151,7 @@ extern "C" ocrGuid_t productEdt_sparse(u32 paramc, u64* paramv, u32 depc, ocrEdt
 extern "C" ocrGuid_t transposeEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[])
 {
 	ocrGuid_t dataBlock = matrixTranspose((double*) depv[0].ptr, (int) paramv[0], (int) paramv[1]);
-	DEBUG_LOG("transposeEdt()\n")
+	DEBUG_LOG("transposeEdt()\n");
 	return dataBlock;
 }
 
@@ -324,7 +326,7 @@ extern "C" ocrGuid_t CgEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]
 
 	//Cleans up datablocks from previous iteration
 	if (k > 0) {	
-		for (int i = 0; i < 12; i++) {
+		for (int i = 0; i < 12+3; i++) {
 			ocrDbDestroy(depv[m+i].guid);
 		}
 	}
@@ -332,7 +334,8 @@ extern "C" ocrGuid_t CgEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]
 
 	//If the algorithm is executed K times on the conjugate gradient
 	//problem or if the residuals are low enough, return the current result x
-	if ((k == K_ITERATIONS) || (isResidualLow == true)){
+	//if ((k == K_ITERATIONS) || (isResidualLow == true)){
+	if ((k == K_ITERATIONS)) {
 		finalIterationAmount = k;
 		ocrEventSatisfy(result, x_old);
 		DEBUG_LOG("k = %d. Satisfied result of CgEdt\n",k);
@@ -545,9 +548,9 @@ extern "C" ocrGuid_t CgEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]
 	//CgEdt template
 	ocrGuid_t CgEdtTemplate;
 	if (isSparse == false)
-		ocrEdtTemplateCreate(&CgEdtTemplate, CgEdt, 6, 5+12);
+		ocrEdtTemplateCreate(&CgEdtTemplate, CgEdt, 6, 5+12+3);
 	else
-		ocrEdtTemplateCreate(&CgEdtTemplate, CgEdt, 6, 6+12);
+		ocrEdtTemplateCreate(&CgEdtTemplate, CgEdt, 6, 6+12+3);
 	DEBUG_LOG("k = %d. Created Edt template: CgEdt\n",k);
 
 	//Sets up parameters for the next CgEdt iteration
@@ -592,6 +595,10 @@ extern "C" ocrGuid_t CgEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]
 	ocrAddDependence(rT_newr, myEdt, m, DB_MODE_RO); m++;
 	ocrAddDependence(beta, myEdt, m, DB_MODE_RO); m++;
 	ocrAddDependence(bp, myEdt, m, DB_MODE_RO); m++;
+	ocrAddDependence(x_old, myEdt, m, DB_MODE_RO); m++;
+	ocrAddDependence(p_old, myEdt, m, DB_MODE_RO); m++;
+	ocrAddDependence(r_old, myEdt, m, DB_MODE_RO); m++;
+	
 	logAddDependence(k, "edtCgEdt");
 
 	ocrAddDependence(r_new, edtO, 0, DB_MODE_RO);
@@ -760,6 +767,7 @@ void conjugateGradient_OCR(Matrix *A_m, Matrix *x_m, Matrix *B_m, ocrGuid_t resu
 	DEBUG_LOG("Init. Created Edt templates: product, subtract\n");
 
 	u64 edtParams[4];
+	int k = 0;
 
 	//Ax
 	ocrGuid_t Ax;
@@ -784,8 +792,6 @@ void conjugateGradient_OCR(Matrix *A_m, Matrix *x_m, Matrix *B_m, ocrGuid_t resu
 	logCreateEdt(k,"r_old");
 
 	//ocrDbDestroy(Ax);
-
-	int k = 0;
 
 	//ocrGuid_t p_old = r_old;
 
@@ -858,6 +864,7 @@ void conjugateGradient_OCR_sparse(ocrGuid_t A, ocrGuid_t elementList, Matrix *x_
 	DEBUG_LOG("Init. Created Edt templates: product, subtract\n");
 
 	u64 edtParams[4];
+	int k = 0;
 
 	//Ax
 	ocrGuid_t Ax;
@@ -882,8 +889,6 @@ void conjugateGradient_OCR_sparse(ocrGuid_t A, ocrGuid_t elementList, Matrix *x_
 	logCreateEdt(k,"r_old");
 
 	//ocrDbDestroy(Ax);
-
-	int k = 0;
 
 	//ocrGuid_t p_old = r_old;
 
