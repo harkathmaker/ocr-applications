@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include "timer.h"
 
 //#define PI 3.1415926
 
@@ -44,6 +45,13 @@ int main(int argc, char *argv[]) {
 		printf("Specify size.\n");
 		exit(0);
 	}
+	
+	int iterations;
+	if(argc > 2) {
+		iterations = atoi(argv[2]);
+	} else {
+		iterations = 1;
+	}
 	int N = atoi(argv[1]);
 	float *x_in = (float*)malloc(sizeof(float) * N);
 	float *X_real = (float*)malloc(sizeof(float) * N);
@@ -56,8 +64,14 @@ int main(int argc, char *argv[]) {
 	x_in[1] = 1;
 	x_in[3] = 2;
 	x_in[6] = 5;
+
+	double t = mysecond();
 	
-	ditfft2(X_real, X_imag, x_in, N, 1);
+	for(i=0;i<iterations;i++) {
+		ditfft2(X_real, X_imag, x_in, N, 1);
+	}
+
+	printf("Completed %d iterations in %f seconds\n",iterations,mysecond()-t);
 
 	for(i=0;i<N;i++) {
 		//printf("%d [%f + %fi]\n",i,X_real[i],X_imag[i]);

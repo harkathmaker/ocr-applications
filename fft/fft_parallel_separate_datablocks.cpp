@@ -198,12 +198,12 @@ ocrGuid_t fftEndSlaveEdt(u32 paramc, u64 *paramv, u32 depc, ocrEdtDep_t depv[]) 
 	for(k=kStart;k<kEnd;k++) {
 		float t_real = X_real[k];
 		float t_imag = X_imag[k];
+		float xr = X_real[k+N/2];
+		float xi = X_imag[k+N/2];
 		double twiddle_real;
 		double twiddle_imag;
 		twiddle_imag = sin(-2 * M_PI * k / N);
 		twiddle_real = cos(-2 * M_PI * k / N);
-		float xr = X_real[k+N/2];
-		float xi = X_imag[k+N/2];
 
 		// (a+bi)(c+di) = (ac - bd) + (bc + ad)i
 		X_real[k] = t_real +
