@@ -47,6 +47,27 @@ int finalIterationAmount = 0;
 
 using namespace std;
 
+#ifndef DEBUG_LOG
+
+// If DEBUG_MESSAGES turned off, suppress print messages
+#ifdef DEBUG_MESSAGES
+#define DEBUG_LOG(...) PRINTF(__VA_ARGS__)
+#else
+#define DEBUG_LOG(...)
+#endif
+
+#else
+#error "DEBUG_LOG is already defined. Change the macro to a different name"
+#endif 
+
+void logAddDependence(int k, const char *edtName) {
+	DEBUG_LOG("k = %d. Added dependencies: %s\n",k,edtName);
+}
+
+void logCreateEdt(int k, const char *edtName) {
+	DEBUG_LOG("k = %d. Created Edt: %s\n",k,edtName);
+}
+
 //Generates a pseudorandom double from fMin to fMax
 //Parameters:
 //  fMin: Lowest value that the random double can be
@@ -73,9 +94,7 @@ extern "C" ocrGuid_t scaleEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t dep
 	double *a = (double*) depv[0].ptr;
 	double *b = (double*) depv[1].ptr;
 	ocrGuid_t dataBlock = matrixScale(a, (int) paramv[0], (int) paramv[1], b);
-#ifdef DEBUG_MESSAGES
-	cout << "scaleEdt()" << endl;
-#endif
+	DEBUG_LOG("scaleEdt()\n");
 	return dataBlock;
 }
 
@@ -94,9 +113,7 @@ extern "C" ocrGuid_t productEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t d
 {
 	ocrGuid_t dataBlock = matrixProduct((double*) depv[0].ptr, (int) paramv[0], (int) paramv[1],
 		(double*) depv[1].ptr, (int) paramv[2], (int) paramv[3]);
-#ifdef DEBUG_MESSAGES
-	cout << "productEdt()" << endl;
-#endif
+	DEBUG_LOG("productEdt()\n");
 	return dataBlock;
 }
 
@@ -117,9 +134,7 @@ extern "C" ocrGuid_t productEdt_sparse(u32 paramc, u64* paramv, u32 depc, ocrEdt
 	ocrGuid_t dataBlock = matrixProduct_sparse((double*) depv[0].ptr, (unsigned int*) depv[1].ptr,
                                                elementAmount, (int)paramv[0], (int)paramv[1],
                                                (double*) depv[2].ptr, (int)paramv[2], (int)paramv[3]);
-#ifdef DEBUG_MESSAGES
-	cout << "productEdt_sparse()" << endl;
-#endif
+	DEBUG_LOG("productEdt_sparse()\n");
 	return dataBlock;
 }
 
@@ -134,9 +149,7 @@ extern "C" ocrGuid_t productEdt_sparse(u32 paramc, u64* paramv, u32 depc, ocrEdt
 extern "C" ocrGuid_t transposeEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[])
 {
 	ocrGuid_t dataBlock = matrixTranspose((double*) depv[0].ptr, (int) paramv[0], (int) paramv[1]);
-#ifdef DEBUG_MESSAGES
-	cout << "transposeEdt()" << endl;
-#endif
+	DEBUG_LOG("transposeEdt()\n")
 	return dataBlock;
 }
 
@@ -152,9 +165,7 @@ extern "C" ocrGuid_t transposeEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t
 extern "C" ocrGuid_t addEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[])
 {
 	ocrGuid_t dataBlock = matrixAdd((double*) depv[0].ptr, (int) paramv[0], (int) paramv[1], (double*) depv[1].ptr);
-#ifdef DEBUG_MESSAGES
-	cout << "addEdt()" << endl;
-#endif
+	DEBUG_LOG("addEdt()\n");
 	return dataBlock;
 }
 
@@ -171,9 +182,7 @@ extern "C" ocrGuid_t subtractEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t 
 {
 	ocrGuid_t dataBlock = matrixSubtract((double*) depv[0].ptr, (int) paramv[0], (int) paramv[1],
 		(double*) depv[1].ptr);
-#ifdef DEBUG_MESSAGES
-	cout << "subtractEdt()" << endl;
-#endif
+	DEBUG_LOG("subtractEdt()\n");
 	return dataBlock;
 }
 
@@ -193,9 +202,7 @@ extern "C" ocrGuid_t divideEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t de
 	double* a = (double*) depv[0].ptr;
 	double* b = (double*) depv[1].ptr;
 	r[0] = a[0] / b[0];
-#ifdef DEBUG_MESSAGES
-	cout << "divideEdt()" << endl;
-#endif
+	DEBUG_LOG("divideEdt()\n");
 	return dataBlock;
 }
 
@@ -213,9 +220,7 @@ extern "C" ocrGuid_t residualEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t 
 	double* r = (double*) depv[0].ptr;
 	int R_rows = (int) paramv[0];
 	bool tempFlag = true;
-#ifdef DEBUG_MESSAGES
-	cout << "residualEdt()" << endl;
-#endif
+	DEBUG_LOG("residualEdt()\n");
 	for (int i = 0; i < R_rows; i++) {
 		if (r[i] > RESIDUAL_LIMIT) {
 			ocrEventSatisfy((ocrGuid_t)paramv[1], NULL_GUID);
@@ -238,9 +243,7 @@ extern "C" ocrGuid_t residualEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t 
 //  Prints the values of the result matrix as well as some benchmarking data
 extern "C" ocrGuid_t printEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[])
 {
-#ifdef DEBUG_MESSAGES
-	cout << "printEdt()" << endl;
-#endif
+	DEBUG_LOG("printEdt()\n");
 	int rows = (int) paramv[0];
 	time_t sec = (time_t) paramv[1];
 	time_t usec = (suseconds_t) paramv[2];
@@ -267,9 +270,7 @@ extern "C" ocrGuid_t printEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t dep
 	//	cout << "elementAmount: " << elementAmount << endl;
 	cout << "MFLOPS: " << (((float)flops / 1000000.) / (cgOcrTimeElapsed / 1000.)) << endl;
 
-#ifdef DEBUG_MESSAGES
-	cout << "OCR Shutdown..." << endl;
-#endif
+	DEBUG_LOG("OCR Shutdown...\n");
 	ocrShutdown();
 	return NULL_GUID;
 }
@@ -305,9 +306,7 @@ extern "C" ocrGuid_t CgEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]
 	int X_old_rows = (int) paramv[3];
 	int X_old_columns = (int) paramv[4];
 	int k = (int) paramv[5];
-#ifdef DEBUG_MESSAGES
-	cout << "k = " << k << ". Retrieved parameters: CgEdt" << endl;
-#endif
+	DEBUG_LOG("k = %d. Retrieved parameters: CgEdt\n",k);
 
 	//Edt dependencies
 	ocrGuid_t A = depv[0].guid;
@@ -326,22 +325,17 @@ extern "C" ocrGuid_t CgEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]
 	//Cleans up datablocks from previous iteration
 	if (k > 0) {	
 		for (int i = 0; i < 12; i++) {
-			ocrDbDestroy(depv[m].guid);
-			m++;
+			ocrDbDestroy(depv[m+i].guid);
 		}
 	}
-#ifdef DEBUG_MESSAGES
-	cout << "k = " << k << ". Retrieved dependencies: CgEdt" << endl;
-#endif
+	DEBUG_LOG("k = %d. Retrieved dependencies: CgEdt\n",k);
 
 	//If the algorithm is executed K times on the conjugate gradient
 	//problem or if the residuals are low enough, return the current result x
 	if ((k == K_ITERATIONS) || (isResidualLow == true)){
 		finalIterationAmount = k;
 		ocrEventSatisfy(result, x_old);
-#ifdef DEBUG_MESSAGES
-		cout << "k = " << k << ". Satisfied result of CgEdt" << endl;
-#endif
+		DEBUG_LOG("k = %d. Satisfied result of CgEdt\n",k);
 		return NULL_GUID;
 	}
 
@@ -378,9 +372,7 @@ extern "C" ocrGuid_t CgEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]
 	ocrGuid_t residualEdtTemplate;
 	ocrEdtTemplateCreate(&residualEdtTemplate, residualEdt, 2, 1);
 
-#ifdef DEBUG_MESSAGES
-	cout << "k = " << k << ". Created Edt templates: scale, product, transpose, add, subtract, divide" << endl;
-#endif
+	DEBUG_LOG("k = %d. Created Edt templates: scale, product, transpose, add, subtract, divide\n");
 
 	//EdtA through EdtB calculates rTr
 	//EdtC through EdtE calculates pTAp
@@ -393,9 +385,7 @@ extern "C" ocrGuid_t CgEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]
 	edtParams[1] = X_old_columns;
 	ocrEdtCreate(&edtA, transposeEdtTemplate, EDT_PARAM_DEF, edtParams, EDT_PARAM_DEF,
 		NULL, EDT_PROP_NONE, NULL_GUID, &rT);
-#ifdef DEBUG_MESSAGES
-	cout << "k = " << k << ". Created Edt: edtA" << endl;
-#endif
+	logCreateEdt(k,"edtA");
 
 	//rTr
 	ocrGuid_t rTr;
@@ -406,9 +396,7 @@ extern "C" ocrGuid_t CgEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]
 	edtParams[3] = X_old_columns;
 	ocrEdtCreate(&edtB, productEdtTemplate, EDT_PARAM_DEF, edtParams, EDT_PARAM_DEF,
 		NULL, EDT_PROP_NONE, NULL_GUID, &rTr);
-#ifdef DEBUG_MESSAGES
-	cout << "k = " << k << ". Created Edt: edtB" << endl;
-#endif
+	logCreateEdt(k,"edtB");
 
 	//pT
 	ocrGuid_t pT;
@@ -417,9 +405,7 @@ extern "C" ocrGuid_t CgEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]
 	edtParams[1] = X_old_columns;
 	ocrEdtCreate(&edtC, transposeEdtTemplate, EDT_PARAM_DEF, edtParams, EDT_PARAM_DEF,
 		NULL, EDT_PROP_NONE, NULL_GUID, &pT);
-#ifdef DEBUG_MESSAGES
-	cout << "k = " << k << ". Created Edt: edtC" << endl;
-#endif
+	logCreateEdt(k,"edtC");
 
 	//A * p_old
 	ocrGuid_t Ap;
@@ -434,9 +420,7 @@ extern "C" ocrGuid_t CgEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]
 	else
 		ocrEdtCreate(&edtD, productEdtSparseTemplate, EDT_PARAM_DEF, edtParams, EDT_PARAM_DEF,
 			NULL, EDT_PROP_NONE, NULL_GUID, &Ap);
-#ifdef DEBUG_MESSAGES
-	cout << "k = " << k << ". Created Edt: edtD" << endl;
-#endif
+	logCreateEdt(k,"edtD");
 
 	//pTAp
 	ocrGuid_t pTAp;
@@ -447,18 +431,14 @@ extern "C" ocrGuid_t CgEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]
 	edtParams[3] = X_old_columns;
 	ocrEdtCreate(&edtE, productEdtTemplate, EDT_PARAM_DEF, edtParams, EDT_PARAM_DEF,
 		NULL, EDT_PROP_NONE, NULL_GUID, &pTAp);
-#ifdef DEBUG_MESSAGES
-	cout << "k = " << k << ". Created Edt: edtE" << endl;
-#endif
+	logCreateEdt(k,"edtE");
 
 	//alpha = rTr / pTAp
 	ocrGuid_t alpha;
 	ocrGuid_t edtF;
 	ocrEdtCreate(&edtF, divideEdtTemplate, EDT_PARAM_DEF, NULL, EDT_PARAM_DEF,
 		NULL, EDT_PROP_NONE, NULL_GUID, &alpha);
-#ifdef DEBUG_MESSAGES
-	cout << "k = " << k << ". Created Edt: edtF" << endl;
-#endif
+	logCreateEdt(k,"edtF");
 
 	//EdtG through EdtH calculates x_new = x_old + alpha * p_old
 
@@ -469,9 +449,7 @@ extern "C" ocrGuid_t CgEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]
 	edtParams[1] = X_old_columns;
 	ocrEdtCreate(&edtG, scaleEdtTemplate, EDT_PARAM_DEF, edtParams, EDT_PARAM_DEF,
 		NULL, EDT_PROP_NONE, NULL_GUID, &alpha_p);
-#ifdef DEBUG_MESSAGES
-	cout << "k = " << k << ". Created Edt: edtG" << endl;
-#endif
+	logCreateEdt(k,"edtG");
 
 	//x_new = x_old + alpha * p_old
 	ocrGuid_t x_new;
@@ -480,9 +458,7 @@ extern "C" ocrGuid_t CgEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]
 	edtParams[1] = X_old_columns;
 	ocrEdtCreate(&edtH, addEdtTemplate, EDT_PARAM_DEF, edtParams, EDT_PARAM_DEF,
 		NULL, EDT_PROP_NONE, NULL_GUID, &x_new);
-#ifdef DEBUG_MESSAGES
-	cout << "k = " << k << ". Created Edt: edtH" << endl;
-#endif
+	logCreateEdt(k,"edtH");
 
 	//EdtI through EdtJ calculates r_new = r_old - alpha * A * p_old
 	//Note how A * p_old is reused from before
@@ -494,9 +470,7 @@ extern "C" ocrGuid_t CgEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]
 	edtParams[1] = X_old_columns;
 	ocrEdtCreate(&edtI, scaleEdtTemplate, EDT_PARAM_DEF, edtParams, EDT_PARAM_DEF,
 		NULL, EDT_PROP_NONE, NULL_GUID, &aAp);
-#ifdef DEBUG_MESSAGES
-	cout << "k = " << k << ". Created Edt: edtI" << endl;
-#endif
+	logCreateEdt(k,"edtI");
 
 	//r_new = r_old - alpha * A * p_old
 	ocrGuid_t r_new;
@@ -505,9 +479,7 @@ extern "C" ocrGuid_t CgEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]
 	edtParams[1] = X_old_columns;
 	ocrEdtCreate(&edtJ, subtractEdtTemplate, EDT_PARAM_DEF, edtParams, EDT_PARAM_DEF,
 		NULL, EDT_PROP_NONE, NULL_GUID, &r_new);
-#ifdef DEBUG_MESSAGES
-	cout << "k = " << k << ". Created Edt: edtJ" << endl;
-#endif
+	logCreateEdt(k,"edtJ");
 
 	//Residual check
 	ocrGuid_t residualEvent;
@@ -518,9 +490,7 @@ extern "C" ocrGuid_t CgEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]
 	edtParams[1] = (ocrGuid_t)residualEvent;
 	ocrEdtCreate(&edtResidual, residualEdtTemplate, EDT_PARAM_DEF, edtParams, EDT_PARAM_DEF,
 		NULL, EDT_PROP_NONE, NULL_GUID, NULL);
-#ifdef DEBUG_MESSAGES
-	cout << "k = " << k << ". Created Edt: edtResidual" << endl;
-#endif
+	logCreateEdt(k,"edtResidual");
 
 	//EdtK through EdtM calculates beta = (rT_new * r_new) / (rT_old * r_old)
 	//Note how rT_old * r_old is reused from before
@@ -532,9 +502,7 @@ extern "C" ocrGuid_t CgEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]
 	edtParams[1] = X_old_columns;
 	ocrEdtCreate(&edtK, transposeEdtTemplate_K, EDT_PARAM_DEF, edtParams, EDT_PARAM_DEF,
 		NULL, EDT_PROP_NONE, NULL_GUID, &rT_new);
-#ifdef DEBUG_MESSAGES
-	cout << "k = " << k << ". Created Edt: edtK" << endl;
-#endif
+	logCreateEdt(k,"edtK");
 
 	//rT_new * r_new
 	ocrGuid_t rT_newr;
@@ -545,18 +513,14 @@ extern "C" ocrGuid_t CgEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]
 	edtParams[3] = X_old_columns;
 	ocrEdtCreate(&edtL, productEdtTemplate, EDT_PARAM_DEF, edtParams, EDT_PARAM_DEF,
 		NULL, EDT_PROP_NONE, NULL_GUID, &rT_newr);
-#ifdef DEBUG_MESSAGES
-	cout << "k = " << k << ". Created Edt: edtL" << endl;
-#endif
+	logCreateEdt(k,"edtL");
 
 	//beta = (rT_new * r_new) / (rT_old * r_old)
 	ocrGuid_t beta;
 	ocrGuid_t edtM;
 	ocrEdtCreate(&edtM, divideEdtTemplate, EDT_PARAM_DEF, NULL, EDT_PARAM_DEF,
 		NULL, EDT_PROP_NONE, NULL_GUID, &beta);
-#ifdef DEBUG_MESSAGES
-	cout << "k = " << k << ". Created Edt: edtM" << endl;
-#endif
+	logCreateEdt(k,"edtM");
 
 	//EdtN through EdtO calculates p_new = r_new + beta * p_old
 
@@ -567,9 +531,7 @@ extern "C" ocrGuid_t CgEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]
 	edtParams[1] = X_old_columns;
 	ocrEdtCreate(&edtN, scaleEdtTemplate_N, EDT_PARAM_DEF, edtParams, EDT_PARAM_DEF,
 		NULL, EDT_PROP_NONE, NULL_GUID, &bp);
-#ifdef DEBUG_MESSAGES
-	cout << "k = " << k << ". Created Edt: edtN" << endl;
-#endif
+	logCreateEdt(k,"edtN");
 
 	//p_new = r_new + beta * p_old
 	ocrGuid_t p_new;
@@ -578,9 +540,7 @@ extern "C" ocrGuid_t CgEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]
 	edtParams[1] = X_old_columns;
 	ocrEdtCreate(&edtO, addEdtTemplate, EDT_PARAM_DEF, edtParams, EDT_PARAM_DEF,
 		NULL, EDT_PROP_NONE, NULL_GUID, &p_new);
-#ifdef DEBUG_MESSAGES
-	cout << "k = " << k << ". Created Edt: edtO" << endl;
-#endif
+	logCreateEdt(k,"edtO");
 
 	//CgEdt template
 	ocrGuid_t CgEdtTemplate;
@@ -588,9 +548,7 @@ extern "C" ocrGuid_t CgEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]
 		ocrEdtTemplateCreate(&CgEdtTemplate, CgEdt, 6, 5+12);
 	else
 		ocrEdtTemplateCreate(&CgEdtTemplate, CgEdt, 6, 6+12);
-#ifdef DEBUG_MESSAGES
-	cout << "k = " << k << ". Created Edt template: CgEdt" << endl;
-#endif
+	DEBUG_LOG("k = %d. Created Edt template: CgEdt\n",k);
 
 	//Sets up parameters for the next CgEdt iteration
 	//k = k + 1
@@ -602,18 +560,14 @@ extern "C" ocrGuid_t CgEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]
 	nparamv[3] = X_old_rows;
 	nparamv[4] = X_old_columns;
 	nparamv[5] = z;
-#ifdef DEBUG_MESSAGES
-	cout << "k = " << k << ". Initialized parameters: CgEdt" << endl;
-#endif
+	DEBUG_LOG("k = %d. Initialized parameters: CgEdt\n",k);
 
 	//Create another CgEdt to spawn (until K iterations are completed)
 	ocrGuid_t myEdt;
 	//Satisfy with A, B, x_new, p_new, r_new
 	ocrEdtCreate(&myEdt, CgEdtTemplate, EDT_PARAM_DEF, nparamv, EDT_PARAM_DEF,
 		NULL, EDT_PROP_NONE, NULL_GUID, NULL);
-#ifdef DEBUG_MESSAGES
-	cout << "k = " << k << ". Created Edt: CgEdt" << endl;
-#endif
+	logCreateEdt(k,"CgEdt");
 
 	//Add dependencies of the Edts in reverse order to ensure they don't complete early
 	ocrAddDependence(A, myEdt, 0, DB_MODE_RO);
@@ -638,81 +592,55 @@ extern "C" ocrGuid_t CgEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]
 	ocrAddDependence(rT_newr, myEdt, m, DB_MODE_RO); m++;
 	ocrAddDependence(beta, myEdt, m, DB_MODE_RO); m++;
 	ocrAddDependence(bp, myEdt, m, DB_MODE_RO); m++;
-#ifdef DEBUG_MESSAGES
-	cout << "k = " << k << ". Added dependencies: CgEdt" << endl;
-#endif
+	logAddDependence(k, "edtCgEdt");
 
 	ocrAddDependence(r_new, edtO, 0, DB_MODE_RO);
 	ocrAddDependence(bp, edtO, 1, DB_MODE_RO);
-#ifdef DEBUG_MESSAGES
-	cout << "k = " << k << ". Added dependencies: edtO" << endl;
-#endif
+	logAddDependence(k, "edtO");
 
 	ocrAddDependence(p_old, edtN, 0, DB_MODE_RO);
 	ocrAddDependence(beta, edtN, 1, DB_MODE_RO);
 	ocrAddDependence(residualEvent, edtN, 2, DB_MODE_RO);
-#ifdef DEBUG_MESSAGES
-	cout << "k = " << k << ". Added dependencies: edtN" << endl;
-#endif
+	logAddDependence(k, "edtN");
 
 	ocrAddDependence(rT_newr, edtM, 0, DB_MODE_RO);
 	ocrAddDependence(rTr, edtM, 1, DB_MODE_RO);
-#ifdef DEBUG_MESSAGES
-	cout << "k = " << k << ". Added dependencies: edtM" << endl;
-#endif
+	logAddDependence(k, "edtM");
 
 	ocrAddDependence(rT_new, edtL, 0, DB_MODE_RO);
 	ocrAddDependence(r_new, edtL, 1, DB_MODE_RO);
-#ifdef DEBUG_MESSAGES
-	cout << "k = " << k << ". Added dependencies: edtL" << endl;
-#endif
+	logAddDependence(k, "edtL");
 
 	ocrAddDependence(r_new, edtK, 0, DB_MODE_RO);
 	ocrAddDependence(residualEvent, edtK, 1, DB_MODE_RO);
-#ifdef DEBUG_MESSAGES
-	cout << "k = " << k << ". Added dependencies: edtK" << endl;
-#endif
+	logAddDependence(k, "edtG");
 
 	ocrAddDependence(r_new, edtResidual, 0, DB_MODE_RO);
-#ifdef DEBUG_MESSAGES
-	cout << "k = " << k << ". Added dependencies: edtResidual" << endl;
-#endif
+	logAddDependence(k, "edtResidual");
 
 	ocrAddDependence(r_old, edtJ, 0, DB_MODE_RO);
 	ocrAddDependence(aAp, edtJ, 1, DB_MODE_RO);
-#ifdef DEBUG_MESSAGES
-	cout << "k = " << k << ". Added dependencies: edtJ" << endl;
-#endif
+	logAddDependence(k, "edtJ");
 
 	ocrAddDependence(Ap, edtI, 0, DB_MODE_RO);
 	ocrAddDependence(alpha, edtI, 1, DB_MODE_RO);
-#ifdef DEBUG_MESSAGES
-	cout << "k = " << k << ". Added dependencies: edtI" << endl;
-#endif
+	logAddDependence(k, "edtI");
 
 	ocrAddDependence(x_old, edtH, 0, DB_MODE_RO);
 	ocrAddDependence(alpha_p, edtH, 1, DB_MODE_RO);
-#ifdef DEBUG_MESSAGES
-	cout << "k = " << k << ". Added dependencies: edtH" << endl;
-#endif
+	logAddDependence(k, "edtH");
 
 	ocrAddDependence(p_old, edtG, 0, DB_MODE_RO);
 	ocrAddDependence(alpha, edtG, 1, DB_MODE_RO);
-#ifdef DEBUG_MESSAGES
-	cout << "k = " << k << ". Added dependencies: edtG" << endl;
-#endif
+	logAddDependence(k, "edtG");
 
 	ocrAddDependence(rTr, edtF, 0, DB_MODE_RO);
 	ocrAddDependence(pTAp, edtF, 1, DB_MODE_RO);
-#ifdef DEBUG_MESSAGES
-	cout << "k = " << k << ". Added dependencies: edtF" << endl;
-#endif
+	logAddDependence(k, "edtF");
 
 	ocrAddDependence(pT, edtE, 0, DB_MODE_RO);
 	ocrAddDependence(Ap, edtE, 1, DB_MODE_RO);
-#ifdef DEBUG_MESSAGES
-	cout << "k = " << k << ". Added dependencies: edtE" << endl;
-#endif
+	logAddDependence(k, "edtE");
 
 	ocrAddDependence(A, edtD, 0, DB_MODE_RO);
 	if (isSparse == false) {
@@ -722,25 +650,17 @@ extern "C" ocrGuid_t CgEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]
 		ocrAddDependence(p_old, edtD, 2, DB_MODE_RO);
 	}
 
-#ifdef DEBUG_MESSAGES
-	cout << "k = " << k << ". Added dependencies: edtD" << endl;
-#endif
+	logAddDependence(k, "edtD");
 
 	ocrAddDependence(p_old, edtC, 0, DB_MODE_RO);
-#ifdef DEBUG_MESSAGES
-	cout << "k = " << k << ". Added dependencies: edtC" << endl;
-#endif
+	logAddDependence(k, "edtC");
 
 	ocrAddDependence(rT, edtB, 0, DB_MODE_RO);
 	ocrAddDependence(r_old, edtB, 1, DB_MODE_RO);
-#ifdef DEBUG_MESSAGES
-	cout << "k = " << k << ". Added dependencies: edtB" << endl;
-#endif
+	logAddDependence(k, "edtB");
 
 	ocrAddDependence(r_old, edtA, 0, DB_MODE_RO);
-#ifdef DEBUG_MESSAGES
-	cout << "k = " << k << ". Added dependencies: edtA" << endl;
-#endif
+	logAddDependence(k, "edtA");
 
 	return NULL_GUID;
 }
@@ -828,9 +748,7 @@ void conjugateGradient_OCR(Matrix *A_m, Matrix *x_m, Matrix *B_m, ocrGuid_t resu
 	ocrEventSatisfy(A, A_m->getDataBlock());
 	ocrEventSatisfy(B, B_m->getDataBlock());
 	ocrEventSatisfy(x, x_m->getDataBlock());
-#ifdef DEBUG_MESSAGES
-	cout << "Init. Created Guids: A, B, x" << endl;
-#endif
+	DEBUG_LOG("Init. Created Guids A, B, x\n");
 
 	//Edt templates
 	ocrGuid_t productEdtTemplate;
@@ -839,9 +757,7 @@ void conjugateGradient_OCR(Matrix *A_m, Matrix *x_m, Matrix *B_m, ocrGuid_t resu
 	ocrGuid_t subtractEdtTemplate;
 	ocrEdtTemplateCreate(&subtractEdtTemplate, subtractEdt, 2, 2);
 
-#ifdef DEBUG_MESSAGES
-	cout << "Init. Created Edt templates: product, subtract" << endl;
-#endif
+	DEBUG_LOG("Init. Created Edt templates: product, subtract\n");
 
 	u64 edtParams[4];
 
@@ -854,9 +770,7 @@ void conjugateGradient_OCR(Matrix *A_m, Matrix *x_m, Matrix *B_m, ocrGuid_t resu
 	edtParams[3] = x_m->getColumns();
 	ocrEdtCreate(&edtA, productEdtTemplate, EDT_PARAM_DEF, edtParams, EDT_PARAM_DEF,
 		NULL, EDT_PROP_NONE, NULL_GUID, &Ax);
-#ifdef DEBUG_MESSAGES
-	cout << "Init. Created Edt: Ax" << endl;
-#endif
+	logCreateEdt(k,"Ax");
 
 	//residual (r0) = b - Ax0
 	ocrGuid_t r_old;
@@ -867,9 +781,7 @@ void conjugateGradient_OCR(Matrix *A_m, Matrix *x_m, Matrix *B_m, ocrGuid_t resu
 	edtParams[3] = x_m->getColumns();
 	ocrEdtCreate(&edtB, subtractEdtTemplate, EDT_PARAM_DEF, edtParams, EDT_PARAM_DEF,
 		NULL, EDT_PROP_NONE, NULL_GUID, &r_old);
-#ifdef DEBUG_MESSAGES
-	cout << "Init. Created Edt: r_old" << endl;
-#endif
+	logCreateEdt(k,"r_old");
 
 	//ocrDbDestroy(Ax);
 
@@ -879,9 +791,7 @@ void conjugateGradient_OCR(Matrix *A_m, Matrix *x_m, Matrix *B_m, ocrGuid_t resu
 
 	ocrGuid_t CgEdtTemplate;
 	ocrEdtTemplateCreate(&CgEdtTemplate, CgEdt, 6, 5);
-#ifdef DEBUG_MESSAGES
-	cout << "Init. Created Edt template: CgEdt" << endl;
-#endif
+	DEBUG_LOG("Init. Created Edt template: CgEdt\n");
 
 	//Parameters for CgEdt
 	u64 nparamv[6];
@@ -892,18 +802,14 @@ void conjugateGradient_OCR(Matrix *A_m, Matrix *x_m, Matrix *B_m, ocrGuid_t resu
 	nparamv[4] = x_m->getColumns();
 	nparamv[5] = k;
 
-#ifdef DEBUG_MESSAGES
-	cout << "Init. Initialized parameters: CgEdt" << endl;
-#endif
+	DEBUG_LOG("Init. Initialized parameters: CgEdt\n");
 
 	//Creates the main algorithm Edt for the conjugate gradient problem
 	ocrGuid_t myEdt;
 	//Satisfy with A, B, x, p_old, r_old
 	ocrEdtCreate(&myEdt, CgEdtTemplate, EDT_PARAM_DEF, nparamv, EDT_PARAM_DEF,
 		NULL, EDT_PROP_NONE, NULL_GUID, NULL);
-#ifdef DEBUG_MESSAGES
-	cout << "Init. Created Edt: CgEdt" << endl;
-#endif
+	logCreateEdt(k,"CgEdt");
 
 	//Add dependencies for CgEdt
 	ocrAddDependence(A, myEdt, 0, DB_MODE_RO);
@@ -911,21 +817,15 @@ void conjugateGradient_OCR(Matrix *A_m, Matrix *x_m, Matrix *B_m, ocrGuid_t resu
 	ocrAddDependence(x, myEdt, 2, DB_MODE_RO);
 	ocrAddDependence(r_old, myEdt, 3, DB_MODE_RO); //p_old
 	ocrAddDependence(r_old, myEdt, 4, DB_MODE_RO);
-#ifdef DEBUG_MESSAGES
-	cout << "Init. Added dependencies: CgEdt" << endl;
-#endif
+	logAddDependence(k,"edtA");
 
 	ocrAddDependence(B, edtB, 0, DB_MODE_RO);
 	ocrAddDependence(Ax, edtB, 1, DB_MODE_RO);
-#ifdef DEBUG_MESSAGES
-	cout << "Init. Added dependencies: edtB" << endl;
-#endif
+	logAddDependence(k,"edtA");
 
 	ocrAddDependence(A, edtA, 0, DB_MODE_RO);
 	ocrAddDependence(x, edtA, 1, DB_MODE_RO);
-#ifdef DEBUG_MESSAGES
-	cout << "Init. Added dependencies: edtA" << endl;
-#endif
+	logAddDependence(k,"edtA");
 }
 
 //Sets up the conjugate gradient algorithm Edt for matrices A, x, and B, where A is sparse
@@ -946,9 +846,7 @@ void conjugateGradient_OCR_sparse(ocrGuid_t A, ocrGuid_t elementList, Matrix *x_
 	ocrEventCreate(&x, OCR_EVENT_STICKY_T, true);
 	ocrEventSatisfy(B, B_m->getDataBlock());
 	ocrEventSatisfy(x, x_m->getDataBlock());
-#ifdef DEBUG_MESSAGES
-	cout << "Init. Created Guids: B, x" << endl;
-#endif
+	DEBUG_LOG("Init. Created Guids: B, x\n");
 
 	//Edt templates
 	ocrGuid_t productEdtSparseTemplate;
@@ -957,9 +855,7 @@ void conjugateGradient_OCR_sparse(ocrGuid_t A, ocrGuid_t elementList, Matrix *x_
 	ocrGuid_t subtractEdtTemplate;
 	ocrEdtTemplateCreate(&subtractEdtTemplate, subtractEdt, 2, 2);
 
-#ifdef DEBUG_MESSAGES
-	cout << "Init. Created Edt templates: product, subtract" << endl;
-#endif
+	DEBUG_LOG("Init. Created Edt templates: product, subtract\n");
 
 	u64 edtParams[4];
 
@@ -972,9 +868,7 @@ void conjugateGradient_OCR_sparse(ocrGuid_t A, ocrGuid_t elementList, Matrix *x_
 	edtParams[3] = x_m->getColumns();
 	ocrEdtCreate(&edtA, productEdtSparseTemplate, EDT_PARAM_DEF, edtParams, EDT_PARAM_DEF,
 		NULL, EDT_PROP_NONE, NULL_GUID, &Ax);
-#ifdef DEBUG_MESSAGES
-	cout << "Init. Created Edt: Ax" << endl;
-#endif
+	logCreateEdt(k,"Ax");
 
 	//residual (r0) = b - Ax0
 	ocrGuid_t r_old;
@@ -985,9 +879,7 @@ void conjugateGradient_OCR_sparse(ocrGuid_t A, ocrGuid_t elementList, Matrix *x_
 	edtParams[3] = x_m->getColumns();
 	ocrEdtCreate(&edtB, subtractEdtTemplate, EDT_PARAM_DEF, edtParams, EDT_PARAM_DEF,
 		NULL, EDT_PROP_NONE, NULL_GUID, &r_old);
-#ifdef DEBUG_MESSAGES
-	cout << "Init. Created Edt: r_old" << endl;
-#endif
+	logCreateEdt(k,"r_old");
 
 	//ocrDbDestroy(Ax);
 
@@ -997,9 +889,7 @@ void conjugateGradient_OCR_sparse(ocrGuid_t A, ocrGuid_t elementList, Matrix *x_
 
 	ocrGuid_t CgEdtTemplate;
 	ocrEdtTemplateCreate(&CgEdtTemplate, CgEdt, 6, 6);
-#ifdef DEBUG_MESSAGES
-	cout << "Init. Created Edt template: CgEdt" << endl;
-#endif
+	DEBUG_LOG("Init. Created Edt template: CgEdt\n");
 
 	//Parameters for CgEdt
 	u64 nparamv[6];
@@ -1010,18 +900,14 @@ void conjugateGradient_OCR_sparse(ocrGuid_t A, ocrGuid_t elementList, Matrix *x_
 	nparamv[4] = x_m->getColumns();
 	nparamv[5] = k;
 
-#ifdef DEBUG_MESSAGES
-	cout << "Init. Initialized parameters: CgEdt" << endl;
-#endif
+	DEBUG_LOG("Init. Initialized parameters: CgEdt\n");
 
 	//Creates the main algorithm Edt for the conjugate gradient problem
 	ocrGuid_t myEdt;
 	//Satisfy with A, B, x, p_old, r_old, elementList
 	ocrEdtCreate(&myEdt, CgEdtTemplate, EDT_PARAM_DEF, nparamv, EDT_PARAM_DEF,
 		NULL, EDT_PROP_NONE, NULL_GUID, NULL);
-#ifdef DEBUG_MESSAGES
-	cout << "Init. Created Edt: CgEdt" << endl;
-#endif
+	logCreateEdt(k,"CgEdt");
 
 	//Add dependencies for CgEdt
 	ocrAddDependence(A, myEdt, 0, DB_MODE_RO);
@@ -1030,22 +916,16 @@ void conjugateGradient_OCR_sparse(ocrGuid_t A, ocrGuid_t elementList, Matrix *x_
 	ocrAddDependence(r_old, myEdt, 3, DB_MODE_RO); //p_old
 	ocrAddDependence(r_old, myEdt, 4, DB_MODE_RO);
 	ocrAddDependence(elementList, myEdt, 5, DB_MODE_RO);
-#ifdef DEBUG_MESSAGES
-	cout << "Init. Added dependencies: CgEdt" << endl;
-#endif
+	logAddDependence(k,"CgEdt");
 
 	ocrAddDependence(B, edtB, 0, DB_MODE_RO);
 	ocrAddDependence(Ax, edtB, 1, DB_MODE_RO);
-#ifdef DEBUG_MESSAGES
-	cout << "Init. Added dependencies: edtB" << endl;
-#endif
+	logAddDependence(k,"edtB");
 
 	ocrAddDependence(A, edtA, 0, DB_MODE_RO);
 	ocrAddDependence(elementList, edtA, 1, DB_MODE_RO);
 	ocrAddDependence(x, edtA, 2, DB_MODE_RO);
-#ifdef DEBUG_MESSAGES
-	cout << "Init. Added dependencies: edtA" << endl;
-#endif
+	logAddDependence(k,"edtA");
 }
 
 //Reads a file containing data values and creates a matrix datablock from the data values
