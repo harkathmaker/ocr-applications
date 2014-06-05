@@ -1,5 +1,7 @@
-CFLAGS=-I${OCR_ROOT}/include -O0
+CFLAGS=-I${OCR_ROOT}/include -O3
 LDFLAGS=-L${OCR_ROOT}/lib -locr -lm
+CPC := g++
+CC := gcc
 
 ifdef mic
         CC := icc
@@ -16,11 +18,11 @@ endif
 
 %.o : %.cpp
 	echo "$(CC) $(CFLAGS) $(LDFLAGS) $@"
-	$(CC) $(CFLAGS) $(LDFLAGS) $@
+	$(CPC) $(CFLAGS) $(LDFLAGS) $@
 
 %.out: %.cpp
 	echo "our rule"
-	$(CC) -lstdc++ $(CFLAGS) $(LDFLAGS) $< -o $@
+	$(CPC) -lstdc++ $(CFLAGS) $(LDFLAGS) $< -o $@
 
 clean:
 	rm *.out

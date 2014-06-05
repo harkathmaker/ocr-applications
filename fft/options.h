@@ -18,7 +18,7 @@ void printHelp(char *argv[], bool supportSerialBlocks) {
 	PRINTF("    -n N                    Computes a matrix with 2^N elements.\n");
 	PRINTF("    --check|-c              Checks the computed results against serial baseline.\n");
 	PRINTF("    -i iterations           Runs the given number of iterations (default 1).\n");
-	PRINTF("    -v verbose              Print out more information.\n");
+	PRINTF("    --verbose|-v            Print out more information.\n");
 	PRINTF("    --print-result|-p       Print input and result of computation.\n");
 }
 
