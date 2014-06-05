@@ -127,125 +127,125 @@ ocrGuid_t iterEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 
 //                   0        1           2      3      4       5       6
 // u64 rparamv[6] = {db_size, iterations, split, chunk, verify, scalar, verbose};
-ocrGuid_t resultsEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
-	u64 i, j;
-	u64 db_size = paramv[0];
-	u64 iterations = paramv[1];
-	u64 split = paramv[2];
-	u64 chunk = paramv[3];
-	int verify = (int) paramv[4];
-	STREAM_TYPE scalar = (STREAM_TYPE) paramv[5];
-	int verbose = (int) paramv[6];
-	STREAM_TYPE totaltiming[4], timings[iterations][4], avg[4];
+// ocrGuid_t resultsEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
+// 	u64 i, j;
+// 	u64 db_size = paramv[0];
+// 	u64 iterations = paramv[1];
+// 	u64 split = paramv[2];
+// 	u64 chunk = paramv[3];
+// 	int verify = (int) paramv[4];
+// 	STREAM_TYPE scalar = (STREAM_TYPE) paramv[5];
+// 	int verbose = (int) paramv[6];
+// 	STREAM_TYPE totaltiming[4], timings[iterations][4], avg[4];
 
-	// Bytes operated on for each vector operation
-	// bytes[0] = copy, bytes[1] = scale, bytes[2] = add, bytes[3] = triad
-	double bytes[4] = {
-    	2 * sizeof(STREAM_TYPE) * db_size,
-    	2 * sizeof(STREAM_TYPE) * db_size,
-    	3 * sizeof(STREAM_TYPE) * db_size,
-    	3 * sizeof(STREAM_TYPE) * db_size
-   	};
+// 	// Bytes operated on for each vector operation
+// 	// bytes[0] = copy, bytes[1] = scale, bytes[2] = add, bytes[3] = triad
+// 	double bytes[4] = {
+//     	2 * sizeof(STREAM_TYPE) * db_size,
+//     	2 * sizeof(STREAM_TYPE) * db_size,
+//     	3 * sizeof(STREAM_TYPE) * db_size,
+//     	3 * sizeof(STREAM_TYPE) * db_size
+//    	};
 	
-	// Sum partial timings
-	for (i = 0; i < split; i++) {
-		STREAM_TYPE * cur = (STREAM_TYPE *) depv[i].ptr;
-		for (j = 0; j < iterations; j++) {
-			timings[j][0] += cur[3 * chunk + 4 * j];
-			timings[j][1] += cur[3 * chunk + 4 * j + 1];
-			timings[j][2] += cur[3 * chunk + 4 * j + 2];
-			timings[j][3] += cur[3 * chunk + 4 * j + 3];
-		}
-	}
+// 	// Sum partial timings
+// 	for (i = 0; i < split; i++) {
+// 		STREAM_TYPE * cur = (STREAM_TYPE *) depv[i].ptr;
+// 		for (j = 0; j < iterations; j++) {
+// 			timings[j][0] += cur[3 * chunk + 4 * j];
+// 			timings[j][1] += cur[3 * chunk + 4 * j + 1];
+// 			timings[j][2] += cur[3 * chunk + 4 * j + 2];
+// 			timings[j][3] += cur[3 * chunk + 4 * j + 3];
+// 		}
+// 	}
 
-	// Set initial min and max values for each vector operation to first iteration
-	STREAM_TYPE min[4] = {timings[0][0], timings[0][1], timings[0][2], timings[0][3]};
-	STREAM_TYPE max[4] = {timings[0][0], timings[0][1], timings[0][2], timings[0][3]};
+// 	// Set initial min and max values for each vector operation to first iteration
+// 	STREAM_TYPE min[4] = {timings[0][0], timings[0][1], timings[0][2], timings[0][3]};
+// 	STREAM_TYPE max[4] = {timings[0][0], timings[0][1], timings[0][2], timings[0][3]};
 
-	// Sum timings from each iteration
-	for (i = 0; i < iterations; i++) {
-		// Print results from each iteration if verbose is specified
-		if (verbose) {
-			PRINTF(HLINE);
-			PRINTF("ITERATION %d:\n", i + 1);
-			PRINTF("Function       Rate MB/s     Time\n");
-			for (j = 0; j < 4; j++)
-				PRINTF("%s%12.1f %11.6f\n", label[j], 1.0E-06 * bytes[i] / timings[i][j], timings[i][j]);
-		}
-		totaltiming[0] += timings[i][0];
-		totaltiming[1] += timings[i][1];
-		totaltiming[2] += timings[i][2];
-		totaltiming[3] += timings[i][3];
-		for (j = 0; j < 4; j++) {
-			if (timings[i][j] > max[j])
-				max[j] = timings[i][j];
-			if (timings[i][j] < min[j])
-				min[j] = timings[i][j];
-		}
-	}
+// 	// Sum timings from each iteration
+// 	for (i = 0; i < iterations; i++) {
+// 		// Print results from each iteration if verbose is specified
+// 		if (verbose) {
+// 			PRINTF(HLINE);
+// 			PRINTF("ITERATION %d:\n", i + 1);
+// 			PRINTF("Function       Rate MB/s     Time\n");
+// 			for (j = 0; j < 4; j++)
+// 				PRINTF("%s%12.1f %11.6f\n", label[j], 1.0E-06 * bytes[i] / timings[i][j], timings[i][j]);
+// 		}
+// 		totaltiming[0] += timings[i][0];
+// 		totaltiming[1] += timings[i][1];
+// 		totaltiming[2] += timings[i][2];
+// 		totaltiming[3] += timings[i][3];
+// 		for (j = 0; j < 4; j++) {
+// 			if (timings[i][j] > max[j])
+// 				max[j] = timings[i][j];
+// 			if (timings[i][j] < min[j])
+// 				min[j] = timings[i][j];
+// 		}
+// 	}
 
-	// Compute averages
-	for (i = 0; i < 4; i++)
-		avg[i] = totaltiming[i] / iterations;
+// 	// Compute averages
+// 	for (i = 0; i < 4; i++)
+// 		avg[i] = totaltiming[i] / iterations;
 
-	// Print overall results from iterations
-	PRINTF(HLINE);
-	PRINTF("OVERALL:\n");
-	PRINTF("Function    Best Rate MB/s  Avg time     Min time     Max time\n");
-	for (i = 0; i < 4; i++)
-		PRINTF("%s%12.1f  %11.6f  %11.6f  %11.6f\n", label[i], 1.0E-06 * bytes[i] / avg[i],
-													 avg[i], min[i], max[i]);
-	PRINTF(HLINE);
+// 	// Print overall results from iterations
+// 	PRINTF(HLINE);
+// 	PRINTF("OVERALL:\n");
+// 	PRINTF("Function    Best Rate MB/s  Avg time     Min time     Max time\n");
+// 	for (i = 0; i < 4; i++)
+// 		PRINTF("%s%12.1f  %11.6f  %11.6f  %11.6f\n", label[i], 1.0E-06 * bytes[i] / avg[i],
+// 													 avg[i], min[i], max[i]);
+// 	PRINTF(HLINE);
 
-	// Export to CSV
-	if (strcmp((char *) depv[split].ptr, "") != 0) 
-		export_csv((char *) depv[split].ptr, db_size, iterations, split, scalar, timings,
-				   1.0E-06 * bytes[0] / avg[0], 1.0E-06 * bytes[1] / avg[1],
-				   1.0E-06 * bytes[2] / avg[2], 1.0E-06 * bytes[3] / avg[3]);
+// 	// Export to CSV
+// 	if (strcmp((char *) depv[split].ptr, "") != 0) 
+// 		export_csv((char *) depv[split].ptr, db_size, iterations, split, scalar, timings,
+// 				   1.0E-06 * bytes[0] / avg[0], 1.0E-06 * bytes[1] / avg[1],
+// 				   1.0E-06 * bytes[2] / avg[2], 1.0E-06 * bytes[3] / avg[3]);
 
-	// Verify results
-	if (verify) {
-		STREAM_TYPE ai, bi, ci;
-		STREAM_TYPE scalar = (STREAM_TYPE) paramv[5];
-		int diff = 0;
+// 	// Verify results
+// 	if (verify) {
+// 		STREAM_TYPE ai, bi, ci;
+// 		STREAM_TYPE scalar = (STREAM_TYPE) paramv[5];
+// 		int diff = 0;
 
-		// Reproduce initializations
-		ai = 1.0;
-		bi = 2.0;
-		ci = 0.0;
+// 		// Reproduce initializations
+// 		ai = 1.0;
+// 		bi = 2.0;
+// 		ci = 0.0;
 
-		// Execute timing loop
-		for (i = 0; i < iterations; i++) {
-			ci = ai;
-			bi = scalar * ci;
-			ci = ai + bi;
-			ai = bi + scalar * ci;
-		}
+// 		// Execute timing loop
+// 		for (i = 0; i < iterations; i++) {
+// 			ci = ai;
+// 			bi = scalar * ci;
+// 			ci = ai + bi;
+// 			ai = bi + scalar * ci;
+// 		}
 
-		// Compare against first elements of each "split" of actual
-		PRINTF("After %d Iterations:\n", iterations);
-		for (i = 0; i < split; i++) {
-			STREAM_TYPE * cur = (STREAM_TYPE *) depv[i].ptr;
-			if (cur[0] != ai) {
-				diff += 1;
-				PRINTF("Expected a: %f, Actual a: %f\n", ai, cur[0]);
-			}
-			if (cur[chunk] != bi) {
-				diff += 1;
-				PRINTF("Expected b: %f, Actual b: %f\n", bi, cur[chunk]);
-			}
-			if (cur[2 * chunk] != ci) {
-				diff += 1;
-				PRINTF("Expected c: %f, Actual c: %f\n", ci, cur[2 * chunk]);
-			}
-		}
-		PRINTF("%d differences between expected and actual\n", diff);
-	}
+// 		// Compare against first elements of each "split" of actual
+// 		PRINTF("After %d Iterations:\n", iterations);
+// 		for (i = 0; i < split; i++) {
+// 			STREAM_TYPE * cur = (STREAM_TYPE *) depv[i].ptr;
+// 			if (cur[0] != ai) {
+// 				diff += 1;
+// 				PRINTF("Expected a: %f, Actual a: %f\n", ai, cur[0]);
+// 			}
+// 			if (cur[chunk] != bi) {
+// 				diff += 1;
+// 				PRINTF("Expected b: %f, Actual b: %f\n", bi, cur[chunk]);
+// 			}
+// 			if (cur[2 * chunk] != ci) {
+// 				diff += 1;
+// 				PRINTF("Expected c: %f, Actual c: %f\n", ci, cur[2 * chunk]);
+// 			}
+// 		}
+// 		PRINTF("%d differences between expected and actual\n", diff);
+// 	}
 
-	ocrShutdown();
-	//PRINTF("FINISHED RESULTS\n");
-	return NULL_GUID;
-}
+// 	ocrShutdown();
+// 	//PRINTF("FINISHED RESULTS\n");
+// 	return NULL_GUID;
+// }
 
 ocrGuid_t mainEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 	u64 c, i, j, argc = getArgc(depv[0].ptr);
@@ -269,20 +269,20 @@ ocrGuid_t mainEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 		return NULL_GUID;
 	}
 
-	u64 nparamc = 9, rparamc = 7;
+	u64 nparamc = 9;
 	STREAM_TYPE * chunkArray;
 	char * efileArray;
 	ocrGuid_t dataGuids[split];
 	ocrGuid_t iterTemplateGuid, iterGuid, iterDone, efileGuid, resultsTemplateGuid, resultsGuid, pipeExecTemplateGuid, 
 			  nextIterTemplateGuid, pipelineTemplateGuid;
 	ocrEdtTemplateCreate(&iterTemplateGuid, &iterEdt, nparamc, split);
-	ocrEdtTemplateCreate(&resultsTemplateGuid, &resultsEdt, rparamc, split + 2);
+	ocrEdtTemplateCreate(&resultsTemplateGuid, &resultsEdt, RPARAMC, split + 2);
 	ocrEdtTemplateCreate(&pipeExecTemplateGuid, &pipeExecEdt, nparamc, split);
 	ocrEdtTemplateCreate(&nextIterTemplateGuid, &iterEdt, nparamc, split + 1);
 	ocrEdtTemplateCreate(&pipelineTemplateGuid, &pipelineEdt, nparamc, 1);
 
 	u64 nparamv[9] = {1, db_size, iterations, split, chunk, scalar, pipeExecTemplateGuid, nextIterTemplateGuid, pipelineTemplateGuid};
-	u64 rparamv[7] = {db_size, iterations, split, chunk, verify, scalar, verbose};
+	u64 rparamv[RPARAMC] = {db_size, iterations, split, chunk, verify, scalar, verbose, 0};
 
 	// Preparing data block
 	// 3 * db_size + 4 * iterations = (3 * chunk + 4 * iterations) * split

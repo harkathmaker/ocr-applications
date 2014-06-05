@@ -11,7 +11,7 @@
 #endif
 
 #ifndef STREAM_TYPE
-#	define STREAM_TYPE unsigned double
+#	define STREAM_TYPE double
 #endif
 
 /*
@@ -131,125 +131,125 @@ ocrGuid_t iterEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 
 //                   0        1           2      3       4       5
 // u64 rparamv[6] = {db_size, iterations, split, verify, scalar, verbose};
-ocrGuid_t resultsEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
-	u64 i, j;
-	u64 db_size = paramv[0];
-	u64 iterations = paramv[1];
-	u64 split = paramv[2];
-	int verify = (int) paramv[3];
-	STREAM_TYPE scalar = (STREAM_TYPE) paramv[4];
-	int verbose = (int) paramv[5];
-	STREAM_TYPE * data = (STREAM_TYPE *) depv[0].ptr;
-	STREAM_TYPE totaltiming[4], timings[iterations][4], min[4], avg[4], max[4];
+// ocrGuid_t resultsEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
+// 	u64 i, j;
+// 	u64 db_size = paramv[0];
+// 	u64 iterations = paramv[1];
+// 	u64 split = paramv[2];
+// 	int verify = (int) paramv[3];
+// 	STREAM_TYPE scalar = (STREAM_TYPE) paramv[4];
+// 	int verbose = (int) paramv[5];
+// 	STREAM_TYPE * data = (STREAM_TYPE *) depv[0].ptr;
+// 	STREAM_TYPE totaltiming[4], timings[iterations][4], min[4], avg[4], max[4];
 
-	double bytes[4] = {
-    	2 * sizeof(STREAM_TYPE) * db_size,
-    	2 * sizeof(STREAM_TYPE) * db_size,
-    	3 * sizeof(STREAM_TYPE) * db_size,
-    	3 * sizeof(STREAM_TYPE) * db_size
-   	};
+// 	double bytes[4] = {
+//     	2 * sizeof(STREAM_TYPE) * db_size,
+//     	2 * sizeof(STREAM_TYPE) * db_size,
+//     	3 * sizeof(STREAM_TYPE) * db_size,
+//     	3 * sizeof(STREAM_TYPE) * db_size
+//    	};
 
-	// Sum timings from each iteration
-	for (i = 0; i < iterations; i++) {
-		// Copy iteration timings to local data structure
-		timings[i][0] += data[3 * db_size + 4 * i];
-		timings[i][1] += data[3 * db_size + 4 * i + 1];
-		timings[i][2] += data[3 * db_size + 4 * i + 2];
-		timings[i][3] += data[3 * db_size + 4 * i + 3];
+// 	// Sum timings from each iteration
+// 	for (i = 0; i < iterations; i++) {
+// 		// Copy iteration timings to local data structure
+// 		timings[i][0] += data[3 * db_size + 4 * i];
+// 		timings[i][1] += data[3 * db_size + 4 * i + 1];
+// 		timings[i][2] += data[3 * db_size + 4 * i + 2];
+// 		timings[i][3] += data[3 * db_size + 4 * i + 3];
 
-		// Print results from each iteration if verbose is specified
-		if (verbose) {
-			PRINTF(HLINE);
-			PRINTF("ITERATION %d:\n", i + 1);
-			PRINTF("Function       Rate MB/s     Time\n");
-			for (j = 0; j < 4; j++)
-				PRINTF("%s%12.1f %11.6f\n", label[j], 1.0E-06 * bytes[i] / timings[i][j], timings[i][j]);
-		}
+// 		// Print results from each iteration if verbose is specified
+// 		if (verbose) {
+// 			PRINTF(HLINE);
+// 			PRINTF("ITERATION %d:\n", i + 1);
+// 			PRINTF("Function       Rate MB/s     Time\n");
+// 			for (j = 0; j < 4; j++)
+// 				PRINTF("%s%12.1f %11.6f\n", label[j], 1.0E-06 * bytes[i] / timings[i][j], timings[i][j]);
+// 		}
 
-		// Add iteration to running sums
-		totaltiming[0] += timings[i][0];
-		totaltiming[1] += timings[i][1];
-		totaltiming[2] += timings[i][2];
-		totaltiming[3] += timings[i][3];
+// 		// Add iteration to running sums
+// 		totaltiming[0] += timings[i][0];
+// 		totaltiming[1] += timings[i][1];
+// 		totaltiming[2] += timings[i][2];
+// 		totaltiming[3] += timings[i][3];
 
-		// Set initial min and max values for each vector operation to first iteration
-		if (i == 0) {
-			for (j = 0; j < 4; j++) {
-				min[j] = timings[i][j];
-				max[j] = timings[i][j];
-			}
-		}
+// 		// Set initial min and max values for each vector operation to first iteration
+// 		if (i == 0) {
+// 			for (j = 0; j < 4; j++) {
+// 				min[j] = timings[i][j];
+// 				max[j] = timings[i][j];
+// 			}
+// 		}
 
-		// Compare current max/min to current iteration
-		for (j = 0; j < 4; j++) {
-			if (timings[i][j] > max[j])
-				max[j] = timings[i][j];
-			if (timings[i][j] < min[j])
-				min[j] = timings[i][j];
-		}
-	}
+// 		// Compare current max/min to current iteration
+// 		for (j = 0; j < 4; j++) {
+// 			if (timings[i][j] > max[j])
+// 				max[j] = timings[i][j];
+// 			if (timings[i][j] < min[j])
+// 				min[j] = timings[i][j];
+// 		}
+// 	}
 
-	// Compute averages
-	for (i = 0; i < 4; i++)
-		avg[i] = totaltiming[i] / iterations;
+// 	// Compute averages
+// 	for (i = 0; i < 4; i++)
+// 		avg[i] = totaltiming[i] / iterations;
 
-	// Print overall results from iterations
-	PRINTF(HLINE);
-	PRINTF("OVERALL:\n");
-	PRINTF("Function    Best Rate MB/s  Avg time     Min time     Max time\n");
-	for (i = 0; i < 4; i++)
-		PRINTF("%s%12.1f  %11.6f  %11.6f  %11.6f\n", label[i], 1.0E-06 * bytes[i] / avg[i],
-													 avg[i], min[i], max[i]);
-	PRINTF(HLINE);
+// 	// Print overall results from iterations
+// 	PRINTF(HLINE);
+// 	PRINTF("OVERALL:\n");
+// 	PRINTF("Function    Best Rate MB/s  Avg time     Min time     Max time\n");
+// 	for (i = 0; i < 4; i++)
+// 		PRINTF("%s%12.1f  %11.6f  %11.6f  %11.6f\n", label[i], 1.0E-06 * bytes[i] / avg[i],
+// 													 avg[i], min[i], max[i]);
+// 	PRINTF(HLINE);
 
-	// Export to CSV
-	if (strcmp((char *) depv[split].ptr, "") != 0) 
-		export_csv((char *) depv[split].ptr, db_size, iterations, split, scalar, timings,
-				   1.0E-06 * bytes[0] / avg[0], 1.0E-06 * bytes[1] / avg[1],
-				   1.0E-06 * bytes[2] / avg[2], 1.0E-06 * bytes[3] / avg[3]);
+// 	// Export to CSV
+// 	if (strcmp((char *) depv[split].ptr, "") != 0) 
+// 		export_csv((char *) depv[split].ptr, db_size, iterations, split, scalar, timings,
+// 				   1.0E-06 * bytes[0] / avg[0], 1.0E-06 * bytes[1] / avg[1],
+// 				   1.0E-06 * bytes[2] / avg[2], 1.0E-06 * bytes[3] / avg[3]);
 
-	// Verify results
-	if (verify) {
-		STREAM_TYPE ai, bi, ci;
-		STREAM_TYPE scalar = (STREAM_TYPE) paramv[4];
-		int diff = 0;
+// 	// Verify results
+// 	if (verify) {
+// 		STREAM_TYPE ai, bi, ci;
+// 		STREAM_TYPE scalar = (STREAM_TYPE) paramv[4];
+// 		int diff = 0;
 
-		// Reproduce initializations
-		ai = 1.0;
-		bi = 2.0;
-		ci = 0.0;
+// 		// Reproduce initializations
+// 		ai = 1.0;
+// 		bi = 2.0;
+// 		ci = 0.0;
 
-		// Execute timing loop
-		for (i = 0; i < iterations; i++) {
-			ci = ai;
-			bi = scalar * ci;
-			ci = ai + bi;
-			ai = bi + scalar * ci;
-		}
+// 		// Execute timing loop
+// 		for (i = 0; i < iterations; i++) {
+// 			ci = ai;
+// 			bi = scalar * ci;
+// 			ci = ai + bi;
+// 			ai = bi + scalar * ci;
+// 		}
 
-		// Compare against actual
-		PRINTF("After %d Iterations:\n", iterations);
-		for (i = 0; i < split; i++) {
-			if (data[i] != ai) {
-				diff += 1;
-				PRINTF("Expected a: %f, Actual a: %f\n", ai, data[i]);
-			}
-			if (data[db_size + i] != bi) {
-				diff += 1;
-				PRINTF("Expected b: %f, Actual b: %f\n", bi, data[db_size + i]);
-			}
-			if (data[2 * db_size + i] != ci) {
-				diff += 1;
-				PRINTF("Expected c: %f, Actual c: %f\n", ci, data[2 * db_size + i]);
-			}
-		}
-		PRINTF("%d differences between expected and actual\n", diff);
-	}
+// 		// Compare against actual
+// 		PRINTF("After %d Iterations:\n", iterations);
+// 		for (i = 0; i < split; i++) {
+// 			if (data[i] != ai) {
+// 				diff += 1;
+// 				PRINTF("Expected a: %f, Actual a: %f\n", ai, data[i]);
+// 			}
+// 			if (data[db_size + i] != bi) {
+// 				diff += 1;
+// 				PRINTF("Expected b: %f, Actual b: %f\n", bi, data[db_size + i]);
+// 			}
+// 			if (data[2 * db_size + i] != ci) {
+// 				diff += 1;
+// 				PRINTF("Expected c: %f, Actual c: %f\n", ci, data[2 * db_size + i]);
+// 			}
+// 		}
+// 		PRINTF("%d differences between expected and actual\n", diff);
+// 	}
 
-	ocrShutdown();
-	//PRINTF("FINISHED RESULTS\n");
-	return NULL_GUID;
-}
+// 	ocrShutdown();
+// 	//PRINTF("FINISHED RESULTS\n");
+// 	return NULL_GUID;
+// }
 
 ocrGuid_t mainEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 	u64 c, i, argc = getArgc(depv[0].ptr);
@@ -273,19 +273,19 @@ ocrGuid_t mainEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 		return NULL_GUID;
 	}
 
-	u64 nparamc = 9, rparamc = 6, pparamc = 2;
+	u64 nparamc = 9, pparamc = 2;
 	STREAM_TYPE * dataArray;
 	char * efileArray;
 	ocrGuid_t dataGuid, efileGuid, iterTemplateGuid, iterGuid, iterDone, resultsTemplateGuid, resultsGuid, 
 			  pipeExecTemplateGuid, nextIterTemplateGuid, pipelineTemplateGuid;
 	ocrEdtTemplateCreate(&iterTemplateGuid, &iterEdt, nparamc, 1);
-	ocrEdtTemplateCreate(&resultsTemplateGuid, &resultsEdt, rparamc, 3);
+	ocrEdtTemplateCreate(&resultsTemplateGuid, &resultsEdt, RPARAMC, 3);
 	ocrEdtTemplateCreate(&pipeExecTemplateGuid, &pipeExecEdt, nparamc, 1);
 	ocrEdtTemplateCreate(&nextIterTemplateGuid, &iterEdt, nparamc, 2);
 	ocrEdtTemplateCreate(&pipelineTemplateGuid, &pipelineEdt, nparamc + pparamc, 1);
 
 	u64 nparamv[9] = {1, db_size, iterations, split, chunk, scalar, pipeExecTemplateGuid, nextIterTemplateGuid, pipelineTemplateGuid};
-	u64 rparamv[6] = {db_size, iterations, split, verify, scalar, verbose};
+	u64 rparamv[RPARAMC] = {db_size, iterations, split, chunk, verify, scalar, verbose, 1};
 
 	// Formatting datablock
 	DBCREATE(&dataGuid,(void **) &dataArray, sizeof(STREAM_TYPE) * (3 * db_size + 4 * iterations), 0, NULL_GUID, NO_ALLOC);
