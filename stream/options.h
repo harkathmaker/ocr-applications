@@ -7,6 +7,11 @@
 	#include "ocr.h"
 #endif
 
+#ifndef __HELPER__
+	#define __HELPER__
+	#include "helper.h"
+#endif
+
 #ifndef STREAM_TYPE
 	#define STREAM_TYPE double
 #endif
@@ -28,19 +33,30 @@ void printHelp() {
 	return;
 }
 
-int parseOptions( int argc,      char ** argv,   u64 * db_size,   char * efile,           u64 * iterations, 
-				  u64 * split,   u64 * chunk,    int * verify,    STREAM_TYPE * scalar,   int * verbose ) {
+int parseOptions( int argc,      char ** argv,   struct args *args) { //u64 * db_size,   char * efile,           u64 * iterations, 
+				  //u64 * split,   u64 * chunk,    int * verify,    STREAM_TYPE * scalar,   int * verbose ) {
 
 	char c;
+
+	// *db_size = 1000000;
+	// *efile = 0;
+	// *iterations = 1;
+	// if (split != NULL)
+	// 	*split = 1;
+	// *verify = 0;
+	// *scalar = 3.0;
+	// *verbose = 0;
+
+	args->db_size = 1000000;
+	strcpy(args->efile, "");
+	args->iterations = 1;
+	args->split = 1;
+	args->chunk = args->db_size;
+	args->verify = 0;
+	args->scalar = 3.0;
+	args->verbose = 0;
+
 	int help = 0;
-	*db_size = 1000000;
-	*efile = 0;
-	*iterations = 1;
-	if (split != NULL)
-		*split = 1;
-	*verify = 0;
-	*scalar = 3.0;
-	*verbose = 0;
 	opterr = 0;
 
 	int option_index = 0;
@@ -65,34 +81,35 @@ int parseOptions( int argc,      char ** argv,   u64 * db_size,   char * efile, 
 
 		switch (c) {
 			case 'd':
-				sscanf(optarg, "%llu", db_size);
+				sscanf(optarg, "%llu", &args->db_size);
+				//&args->db_size = 20;
 				break;
 			case 'e':
-				sscanf(optarg, "%s", efile);
+				sscanf(optarg, "%s", &args->efile);
 				break;
 			case 'h':
 				printHelp();
 				help = 1;
 				break;
 			case 'i':
-				sscanf(optarg, "%llu", iterations);
+				sscanf(optarg, "%llu", &args->iterations);
 				break;
 			case 'p':
-				if (split != NULL) {
-					sscanf(optarg, "%llu", split);
+				if (&args->split != NULL) {
+					sscanf(optarg, "%llu", &args->split);
 				} else {
 					PRINTF("Unknown option -p.\n");
 					help = 1;
 				}
 				break;
 			case 'r':
-				*verify = 1;
+				args->verify = 1;
 				break;
 			case 's':
-				sscanf(optarg, "%lf", scalar);
+				sscanf(optarg, "%lf", &args->scalar);
 				break;
 			case 'v':
-				*verbose = 1;
+				args->verbose = 1;
 				break;
 			case '?':
 				PRINTF("Unknown option -%c.\n",optopt);
@@ -100,8 +117,8 @@ int parseOptions( int argc,      char ** argv,   u64 * db_size,   char * efile, 
 				break;
 		}
 	}
-	if (chunk != NULL)
-		*chunk = *db_size / *split;
+	if (&args->chunk != NULL)
+		args->chunk = args->db_size / args->split;
 
 	return help;
 }
