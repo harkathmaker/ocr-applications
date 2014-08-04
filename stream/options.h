@@ -18,9 +18,9 @@
 
 void printHelp() {
 	PRINTF( "Usage:\n"
-			"serial_stream [-d db_size] [-e] [-h] [-i num_iter]\n"
+			"stream [-d db_size] [-e] [-h] [-i num_iter]\n"
 			"              [-r] [-s scalar_value] [-v]\n\n"
-			"List of Options:\n" 
+			"List of Options:\n"
 			"  -d|--db_size     = Size of data blocks a, b, c (1 million by default).\n"
 			"  -e|--export      = Exports results to csv file.\n"
 			"  -h|--help        = List of options.\n"
@@ -33,24 +33,15 @@ void printHelp() {
 	return;
 }
 
-int parseOptions( int argc,      char ** argv,   struct args *args) { //u64 * db_size,   char * efile,           u64 * iterations, 
+int parseOptions( int argc, char ** argv, struct args *args) { //u64 * db_size,   char * efile,           u64 * iterations,
 				  //u64 * split,   u64 * chunk,    int * verify,    STREAM_TYPE * scalar,   int * verbose ) {
 
 	char c;
-
-	// *db_size = 1000000;
-	// *efile = 0;
-	// *iterations = 1;
-	// if (split != NULL)
-	// 	*split = 1;
-	// *verify = 0;
-	// *scalar = 3.0;
-	// *verbose = 0;
-
 	args->db_size = 1000000;
 	strcpy(args->efile, "");
 	args->iterations = 1;
-	args->split = 1;
+	if (args->split != -1)
+		args->split = 1;
 	args->chunk = args->db_size;
 	args->verify = 0;
 	args->scalar = 3.0;
@@ -82,7 +73,6 @@ int parseOptions( int argc,      char ** argv,   struct args *args) { //u64 * db
 		switch (c) {
 			case 'd':
 				sscanf(optarg, "%llu", &args->db_size);
-				//&args->db_size = 20;
 				break;
 			case 'e':
 				sscanf(optarg, "%s", &args->efile);
@@ -95,7 +85,7 @@ int parseOptions( int argc,      char ** argv,   struct args *args) { //u64 * db
 				sscanf(optarg, "%llu", &args->iterations);
 				break;
 			case 'p':
-				if (&args->split != NULL) {
+				if (args->split != -1) {
 					sscanf(optarg, "%llu", &args->split);
 				} else {
 					PRINTF("Unknown option -p.\n");
@@ -117,8 +107,10 @@ int parseOptions( int argc,      char ** argv,   struct args *args) { //u64 * db
 				break;
 		}
 	}
-	if (&args->chunk != NULL)
+	if (args->split != -1)
 		args->chunk = args->db_size / args->split;
+	else
+		args->chunk = args->db_size;
 
 	return help;
 }
