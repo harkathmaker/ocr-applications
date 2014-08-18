@@ -14,18 +14,8 @@
 	#define STREAM_TYPE double
 #endif
 
-#define DEBUG
-
-/*
-	NOTES:
-	One large datablock is used with ranges of indexes corresponding to the following:
-			  a --> [0 to (db_size - 1)]
-			  b --> [db_size to (2 * db_size - 1)]
-			  c --> [2 * db_size to (3 * db_size - 1)]
-		timings --> [3 * db_size to (3 * db_size + iterations - 1)]
-*/
-
 ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
+	// Get argc and argv values from user input
 	u64 i, j, argc = getArgc(depv[0].ptr);
 	char * argv[argc];
 	for (i = 0; i < argc; i++)
@@ -50,19 +40,27 @@ ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
 	}
 	paramsArray->args.split = 1;
 
-	// Create templates and set paramv
+	// Initialize templates
 	ocrGuid_t nextIterTemplateGuid, streamTemplateGuid, firstVecOpTemplateGuid;
 	u64 split = paramsArray->args.split;
-	ocrEdtTemplateCreate(&paramsArray->tmplt.nextIterTemplateGuid, iterEdt, split + 1, 2);
-	ocrEdtTemplateCreate(&paramsArray->tmplt.streamTemplateGuid, serialStreamEdt, split + 1, 1);
-	ocrEdtTemplateCreate(&paramsArray->tmplt.firstVecOpTemplateGuid, runSerialStreamEdt, 0, split + 2);
+	ocrEdtTemplateCreate(&paramsArray->tmplt.nextIterTemplateGuid,   iterEdt,
+		split + 1, 2);
+	ocrEdtTemplateCreate(&paramsArray->tmplt.streamTemplateGuid,     serialStreamEdt,
+		split + 1, 1);
+	ocrEdtTemplateCreate(&paramsArray->tmplt.firstVecOpTemplateGuid, runSerialStreamEdt,
+		0, split + 2);
 
-	// Create one datablock containing addresses to arrays, timings, export file name, and parameters
+	// Create one datablock containing addresses to arrays, timings, export file name,
+	// and parameters
 	ocrGuid_t dataGuids[paramsArray->args.split + 1];
 	createDbs(paramsGuid, paramsArray, dataGuids);
 
 	// Create iter and results EDTs
 	startStream(dataGuids, paramsArray, paramsGuid);
+
+#ifdef DEBUG
+	PRINTF("FINISHED MAIN\n");
+#endif
 
 	return NULL_GUID;
 }

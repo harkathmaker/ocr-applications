@@ -21,16 +21,17 @@ ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
 	for (i = 0; i < argc; i++)
 		argv[i] = getArgv(depv[0].ptr, i);
 
-	// Create params data block struct containing argument data
+	// Create params data block struct to store argument data
 	ocrGuid_t paramsGuid;
 	struct params * paramsArray;
 	DBCREATE(&paramsGuid,(void **) &paramsArray,
 		sizeof(struct params), 0, NULL_GUID, NO_ALLOC);
 
-	// Initialize params struct and set current iteration to 0
+	// Set current iteration to 0
 	paramsArray->cur_itr = 0;
 
 	// Parse getopt commands and add values into args sub-struct
+	// Release and destroy data block if help selected or user gives unknown option
 	if (initArgs(argc, argv, &paramsArray->args) == 0) {
 		ocrDbRelease(paramsGuid);
 		ocrDbDestroy(paramsGuid);
@@ -38,10 +39,11 @@ ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
 		return NULL_GUID;
 	}
 
-	// Create templates and set paramv
+	// Initialize templates
 	initTemplates(&paramsArray->tmplt, paramsArray->args.split, &parallelStreamEdt);
 
-	// Create one datablock containing addresses to arrays, timings, export file name, and parameters
+	// Create one datablock containing addresses to arrays, timings, export file name,
+	// and parameters
 	ocrGuid_t dataGuids[paramsArray->args.split + 1];
 	createDbs(paramsGuid, paramsArray, dataGuids);
 
@@ -52,5 +54,5 @@ ocrGuid_t mainEdt(u32 paramc, u64* paramv, u32 depc, ocrEdtDep_t depv[]) {
 	PRINTF("FINISHED MAIN\n");
 #endif
 
-	return NULL_GUID; 
+	return NULL_GUID;
 }

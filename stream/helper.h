@@ -14,7 +14,7 @@
 
 // #define DEBUG
 
-#define HLINE "---------------------------------------------------------------\n"
+#define HLINE "--------------------------------------------------------------\n"
 
 char * label[4] = {"Copy:      ", "Scale:     ", "Add:       ", "Triad:     "};
 
@@ -23,14 +23,14 @@ char * label[4] = {"Copy:      ", "Scale:     ", "Add:       ", "Triad:     "};
 // ----------------------------------
 
 struct args {
-	u64 db_size;
+	u64  chunk;
+	u64  db_size;
 	char efile[100];
-	u64 iterations;
-	u64 split;
-	u64 chunk;
-	int verify;
+	u64  iterations;
+	u64  split;
+	int  verify;
+	int  verbose;
 	STREAM_TYPE scalar;
-	int verbose;
 };
 
 struct templates {
@@ -54,15 +54,19 @@ struct params{
 // TIMERS
 // ----------------------------------
 
+// Original timer function used in native STREAM
 double mysecond() {
 	struct timeval tp;
 	struct timezone tzp;
 	int i = gettimeofday(&tp, &tzp);
+
 	return ((double) tp.tv_sec + (double) tp.tv_usec * 1.e-6 );
 }
 
-void export_csv(char * name, u64 db_size, u64 iterations, u64 split, STREAM_TYPE scalar, STREAM_TYPE trials[][4],
-	STREAM_TYPE cavg, STREAM_TYPE savg, STREAM_TYPE aavg, STREAM_TYPE tavg) {
+void export_csv(char * name, u64 db_size, u64 iterations, u64 split,
+	STREAM_TYPE scalar, STREAM_TYPE trials[][4], STREAM_TYPE cavg,
+	STREAM_TYPE savg, STREAM_TYPE aavg, STREAM_TYPE tavg) {
+
 	u64 i;
 	FILE * f = fopen(name, "a");
 
@@ -71,9 +75,11 @@ void export_csv(char * name, u64 db_size, u64 iterations, u64 split, STREAM_TYPE
 		exit(1);
 	}
 
-	fprintf(f, "%llu, %llu, %llu, %.2f, %12.1f, %12.1f, %12.1f, %12.1f\n", db_size, iterations, split, scalar, cavg, savg, aavg, tavg);
+	fprintf(f, "%llu, %llu, %llu, %.2f, %12.1f, %12.1f, %12.1f, %12.1f\n",
+		db_size, iterations, split, scalar, cavg, savg, aavg, tavg);
 
 	fclose(f);
+
 	return;
 }
 
@@ -174,8 +180,8 @@ ocrGuid_t runVecOpEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 	u64 tparamc = 2;
 	u64 tparamv[2] ={cur_itr, vecOp};
 	ocrEdtTemplateCreate(&endTimerTemplateGuid, &endTimerEdt, tparamc, split + 1);
-	ocrEdtCreate(&endTimerGuid, endTimerTemplateGuid, EDT_PARAM_DEF, tparamv, EDT_PARAM_DEF, NULL_GUID,
-		EDT_PROP_FINISH, NULL_GUID, NULL);
+	ocrEdtCreate(&endTimerGuid, endTimerTemplateGuid, EDT_PARAM_DEF, tparamv,
+		EDT_PARAM_DEF, NULL_GUID, EDT_PROP_FINISH, NULL_GUID, NULL);
 	ocrAddDependence((ocrGuid_t) depv[split].guid, endTimerGuid, 0, DB_MODE_ITW);
 
 	// Create "Start" Event signalling all instances of the vector operation to run
@@ -185,9 +191,10 @@ ocrGuid_t runVecOpEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 	u64 i;
 	u64 nparamv[2] = {chunk, scalar};
 	for (i = 0; i < split; i++) {
-		ocrEdtCreate(&vecOpGuid, vecOpTemplateGuid, EDT_PARAM_DEF, nparamv, EDT_PARAM_DEF, NULL_GUID,
-			EDT_PROP_FINISH, NULL_GUID, &vecOpDone);
-		// Run the vector operation EDTs once all of the vector operation EDTs have been created
+		ocrEdtCreate(&vecOpGuid, vecOpTemplateGuid, EDT_PARAM_DEF, nparamv,
+			EDT_PARAM_DEF, NULL_GUID, EDT_PROP_FINISH, NULL_GUID, &vecOpDone);
+		// Run the vector operation EDTs once all of the vector operation EDTs have
+		// been created
 		ocrAddDependence((ocrGuid_t) depv[i].guid, vecOpGuid, 0, DB_MODE_ITW);
 		ocrAddDependence(allVecOpReady, vecOpGuid, 1, DB_MODE_RO);
 		ocrAddDependence(vecOpDone, endTimerGuid, i + 1, DB_MODE_RO);
@@ -212,7 +219,9 @@ ocrGuid_t runVecOpEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 	return NULL_GUID;
 }
 
-ocrGuid_t parallelStreamEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
+ocrGuid_t parallelStreamEdt(u32 paramc, u64 * paramv, u32 depc,
+	ocrEdtDep_t depv[]) {
+
 	// Create local variables of parameters
 	struct params * params = (struct params *) depv[0].ptr;
 	u64 cur_itr = params->cur_itr;
@@ -234,17 +243,17 @@ ocrGuid_t parallelStreamEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv
 
 	// Create each vector operation EDT
 	ocrGuid_t copyGuid, scaleGuid, addGuid, triadGuid, copyDone, scaleDone, addDone;
-	ocrEdtCreate(&copyGuid, firstVecOpTemplateGuid, EDT_PARAM_DEF, cparamv, EDT_PARAM_DEF, NULL_GUID,
-	EDT_PROP_FINISH, NULL_GUID, &copyDone);
+	ocrEdtCreate(&copyGuid, firstVecOpTemplateGuid, EDT_PARAM_DEF, cparamv,
+		EDT_PARAM_DEF, NULL_GUID, EDT_PROP_FINISH, NULL_GUID, &copyDone);
 
-	ocrEdtCreate(&scaleGuid, otherVecOpTemplateGuid, EDT_PARAM_DEF, sparamv, EDT_PARAM_DEF, NULL_GUID,
-	EDT_PROP_FINISH, NULL_GUID, &scaleDone);
+	ocrEdtCreate(&scaleGuid, otherVecOpTemplateGuid, EDT_PARAM_DEF, sparamv,
+		EDT_PARAM_DEF, NULL_GUID, EDT_PROP_FINISH, NULL_GUID, &scaleDone);
 
-	ocrEdtCreate(&addGuid, otherVecOpTemplateGuid, EDT_PARAM_DEF, aparamv, EDT_PARAM_DEF, NULL_GUID,
-	EDT_PROP_FINISH, NULL_GUID, &addDone);
+	ocrEdtCreate(&addGuid, otherVecOpTemplateGuid, EDT_PARAM_DEF, aparamv,
+		EDT_PARAM_DEF, NULL_GUID, EDT_PROP_FINISH, NULL_GUID, &addDone);
 
-	ocrEdtCreate(&triadGuid, otherVecOpTemplateGuid, EDT_PARAM_DEF, tparamv, EDT_PARAM_DEF, NULL_GUID,
-	EDT_PROP_FINISH, NULL_GUID, NULL);
+	ocrEdtCreate(&triadGuid, otherVecOpTemplateGuid, EDT_PARAM_DEF, tparamv,
+		EDT_PARAM_DEF, NULL_GUID, EDT_PROP_FINISH, NULL_GUID, NULL);
 
 	// Add datablock dependencies for each vector operation
 	u64 i;
@@ -274,13 +283,15 @@ ocrGuid_t parallelStreamEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv
 	return NULL_GUID;
 }
 
-ocrGuid_t serialStreamEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
+ocrGuid_t serialStreamEdt(u32 paramc, u64 * paramv, u32 depc,
+	ocrEdtDep_t depv[]) {
+
 	ocrGuid_t serialGuid;
 	struct params * params = (struct params *) depv[0].ptr;
 	ocrGuid_t runSerialStreamTemplateGuid = params->tmplt.firstVecOpTemplateGuid;
 	u64 split = params->args.split;
-	ocrEdtCreate(&serialGuid, runSerialStreamTemplateGuid, 0, NULL_GUID, EDT_PARAM_DEF, NULL_GUID,
-		EDT_PROP_FINISH, NULL_GUID, NULL);
+	ocrEdtCreate(&serialGuid, runSerialStreamTemplateGuid, 0, NULL_GUID,
+		EDT_PARAM_DEF, NULL_GUID, EDT_PROP_FINISH, NULL_GUID, NULL);
 
 	u64 i;
 	for (i = 0; i < split + 1; i++)
@@ -294,7 +305,9 @@ ocrGuid_t serialStreamEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]
 	return NULL_GUID;
 }
 
-ocrGuid_t runSerialStreamEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
+ocrGuid_t runSerialStreamEdt(u32 paramc, u64 * paramv, u32 depc,
+	ocrEdtDep_t depv[]) {
+
 	struct params * params = (struct params *) depv[depc - 1].ptr;
 	u64 i;
 	u64 db_size = params->args.db_size;
@@ -317,7 +330,7 @@ ocrGuid_t runSerialStreamEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t dep
 
 	// SCALE
 	start = mysecond();
-	for (i = begin; i < end; i++) 
+	for (i = begin; i < end; i++)
 		data[db_size + i] = scalar * data[2 * db_size + i];
 	stop = mysecond();
 	timings[4 * (cur_itr - 1) + 1] = stop - start;
@@ -423,7 +436,8 @@ ocrGuid_t resultsEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 			PRINTF("ITERATION %d:\n", i + 1);
 			PRINTF("Function       Rate MB/s     Time\n");
 			for (j = 0; j < 4; j++)
-				PRINTF("%s%12.1f %11.6f\n", label[j], 1.0E-06 * bytes[j] / timings[i][j], timings[i][j]);
+				PRINTF("%s%12.1f %11.6f\n", label[j],
+					1.0E-06 * bytes[j] / timings[i][j], timings[i][j]);
 		}
 		totaltiming[0] += timings[i][0];
 		totaltiming[1] += timings[i][1];
@@ -432,7 +446,6 @@ ocrGuid_t resultsEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 		for (j = 0; j < 4; j++) {
 			if (timings[i][j] > max[j])
 				 max[j] = timings[i][j];
-			//printf("timings[%llu][%llu] = %f\n", timings[i][j]);
 			if (timings[i][j] < min[j])
 				 min[j] = timings[i][j];
 		}
@@ -447,15 +460,16 @@ ocrGuid_t resultsEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 	PRINTF("OVERALL:\n");
 	PRINTF("Function    Best Rate MB/s  Avg time     Min time     Max time\n");
 	for (i = 0; i < 4; i++)
-		PRINTF("%s%12.1f  %11.6f  %11.6f  %11.6f\n", label[i], 1.0E-06 * bytes[i] / avg[i],
-			avg[i], min[i], max[i]);
+		PRINTF("%s%12.1f  %11.6f  %11.6f  %11.6f\n", label[i],
+			1.0E-06 * bytes[i] / avg[i], avg[i], min[i], max[i]);
 	PRINTF(HLINE);
 
 	// Export to CSV
 	if (strcmp((char *) depv[split+1].ptr, "") != 0)
-		export_csv((char *) depv[split + 1].ptr, db_size, iterations, split, scalar, timings,
-				1.0E-06 * bytes[0] / avg[0], 1.0E-06 * bytes[1] / avg[1],
-				1.0E-06 * bytes[2] / avg[2], 1.0E-06 * bytes[3] / avg[3]);
+		export_csv((char *) depv[split + 1].ptr, db_size, iterations, split,
+			scalar, timings,
+			1.0E-06 * bytes[0] / avg[0], 1.0E-06 * bytes[1] / avg[1],
+			1.0E-06 * bytes[2] / avg[2], 1.0E-06 * bytes[3] / avg[3]);
 
 	// Verify results
 	if (verify) {
@@ -500,6 +514,7 @@ ocrGuid_t resultsEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 #endif
 
 	ocrShutdown();
+
 	return NULL_GUID;
 }
 
@@ -510,13 +525,15 @@ ocrGuid_t resultsEdt(u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[]) {
 int initArgs(u64 argc, char ** argv, struct args * a) {
 	if (parseOptions(argc, argv, a))
 		return 0;
+
 	return 1;
 }
 
 void initTemplates(struct templates * t, u64 split,
 	ocrGuid_t (* streamEdt) (u32 paramc, u64 * paramv, u32 depc, ocrEdtDep_t depv[])) {
+
 	ocrEdtTemplateCreate(&t->nextIterTemplateGuid, &iterEdt, split + 1, 2);
-	ocrEdtTemplateCreate(&t->streamTemplateGuid,  streamEdt, split + 1, 1);
+	ocrEdtTemplateCreate(&t->streamTemplateGuid,   streamEdt, split + 1, 1);
 
 	u64 rparamc = 3;
 	ocrEdtTemplateCreate(&t->copyTemplateGuid,  &copyEdt,  rparamc, 2);
@@ -524,12 +541,16 @@ void initTemplates(struct templates * t, u64 split,
 	ocrEdtTemplateCreate(&t->addTemplateGuid,   &addEdt,   rparamc, 2);
 	ocrEdtTemplateCreate(&t->triadTemplateGuid, &triadEdt, rparamc, 2);
 
-	ocrEdtTemplateCreate(&t->firstVecOpTemplateGuid, &runVecOpEdt, rparamc, split + 2);
-	ocrEdtTemplateCreate(&t->otherVecOpTemplateGuid, &runVecOpEdt, rparamc, split + 3);
+	ocrEdtTemplateCreate(&t->firstVecOpTemplateGuid, &runVecOpEdt, rparamc,
+		split + 2);
+	ocrEdtTemplateCreate(&t->otherVecOpTemplateGuid, &runVecOpEdt, rparamc,
+		split + 3);
+
 	return;
 }
 
 void createDbs(ocrGuid_t paramsGuid, struct params * paramsArray, ocrGuid_t * dataGuid) {
+
 	// Create data block for "a, b, c" arrays
 	u64 i, j;
 	ocrGuid_t      chunkGuid;
@@ -561,10 +582,13 @@ void createDbs(ocrGuid_t paramsGuid, struct params * paramsArray, ocrGuid_t * da
 	return;
 }
 
-void startStream (ocrGuid_t * dataGuids, struct params * paramsArray, ocrGuid_t paramsGuid) {
+void startStream (ocrGuid_t * dataGuids, struct params * paramsArray,
+	ocrGuid_t paramsGuid) {
+
 	// Create iterator and results templates
 	u64 split = paramsArray->args.split;
-	ocrGuid_t iterGuid, iterDone, iterTemplateGuid, nextIterTemplateGuid, resultsGuid, resultsTemplateGuid;
+	ocrGuid_t iterGuid, iterDone, iterTemplateGuid, nextIterTemplateGuid,
+		resultsGuid, resultsTemplateGuid;
 	ocrEdtTemplateCreate(&iterTemplateGuid, &iterEdt, split+ 1, 1);
 	ocrEdtTemplateCreate(&resultsTemplateGuid, &resultsEdt, 0, split + 4);
 
@@ -575,15 +599,16 @@ void startStream (ocrGuid_t * dataGuids, struct params * paramsArray, ocrGuid_t 
 		paramv[i] = (u64) dataGuids[i];
 
 	// Create iterator and results EDTs
-	ocrEdtCreate(&iterGuid, iterTemplateGuid, EDT_PARAM_DEF, paramv, EDT_PARAM_DEF, NULL_GUID,
-		EDT_PROP_FINISH, NULL_GUID, &iterDone);
-	ocrEdtCreate(&resultsGuid, resultsTemplateGuid, EDT_PARAM_DEF, NULL_GUID, EDT_PARAM_DEF, NULL_GUID,
-		EDT_PROP_NONE, NULL_GUID, NULL);
+	ocrEdtCreate(&iterGuid, iterTemplateGuid, EDT_PARAM_DEF, paramv,
+		EDT_PARAM_DEF, NULL_GUID, EDT_PROP_FINISH, NULL_GUID, &iterDone);
+	ocrEdtCreate(&resultsGuid, resultsTemplateGuid, EDT_PARAM_DEF, NULL_GUID,
+		EDT_PARAM_DEF, NULL_GUID, EDT_PROP_NONE, NULL_GUID, NULL);
 
 	// Create datablock for export file name
 	ocrGuid_t efileGuid;
 	char * efileArray;
-	DBCREATE(&efileGuid, (void **) &efileArray, sizeof(char) * sizeof(paramsArray->args.efile), 0, NULL_GUID, NO_ALLOC);
+	DBCREATE(&efileGuid, (void **) &efileArray,
+		sizeof(char) * sizeof(paramsArray->args.efile), 0, NULL_GUID, NO_ALLOC);
 	strcpy(efileArray, paramsArray->args.efile);
 
 	// Dependencies for results

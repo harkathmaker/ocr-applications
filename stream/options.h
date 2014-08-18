@@ -25,18 +25,19 @@ void printHelp() {
 			"  -e|--export      = Exports results to csv file.\n"
 			"  -h|--help        = List of options.\n"
 			"  -i|--iterations  = Number of iterations (1 by default).\n"
-			"* -p|--split       = Splits db_size by given value (split value should be set so db_size % split = 0 and is 1 by default).\n"
+			"* -p|--split       = Splits db_size by given value (split value should be set so\n"
+      "                     db_size % split = 0 and is 1 by default).\n"
 			"  -r|--verify      = Verify results.\n"
 			"  -s|--scalar      = Set scalar value (3.0 by default).\n"
 			"  -v|--verbose     = Verbose output.\n"
-			"Options with a * next to them are only available in parallel implementations\n" );
+			"Options with a * next to them are only available in parallel implementation\n" );
+
 	return;
 }
 
-int parseOptions( int argc, char ** argv, struct args *args) { //u64 * db_size,   char * efile,           u64 * iterations,
-				  //u64 * split,   u64 * chunk,    int * verify,    STREAM_TYPE * scalar,   int * verbose ) {
-
+int parseOptions( int argc, char ** argv, struct args *args) {
 	char c;
+	// Default values
 	args->db_size = 1000000;
 	strcpy(args->efile, "");
 	args->iterations = 1;
@@ -52,19 +53,18 @@ int parseOptions( int argc, char ** argv, struct args *args) { //u64 * db_size, 
 
 	int option_index = 0;
 	static struct option long_options[] = {
-		{"db_size",     required_argument,  0,              'd'},
-		{"export",      required_argument,  0,              'e'},
-		{"help",        no_argument,        0,              'h'},
-		{"iterations",  required_argument,  0,              'i'},
-		{"split",       required_argument,  0,              'p'},
-		{"verify",      no_argument,        0,              'r'},
-		{"scalar",      required_argument,  0,              's'},
-		{"verbose",     no_argument,        0,              'v'},
+		{"db_size",     required_argument,  0,	'd'},
+		{"export",      required_argument,  0,	'e'},
+		{"help",        no_argument,        0,	'h'},
+		{"iterations",  required_argument,  0,	'i'},
+		{"split",       required_argument,  0,	'p'},
+		{"verify",      no_argument,        0,	'r'},
+		{"scalar",      required_argument,  0,	's'},
+		{"verbose",     no_argument,        0,	'v'},
 		{0, 0, 0, 0}
 	};
 
 	while (1) {
-
 		c = getopt_long(argc, argv, "d:e:hi:n:p:rs:v", long_options, &option_index);
 
 		if (c == -1)
@@ -107,9 +107,13 @@ int parseOptions( int argc, char ** argv, struct args *args) { //u64 * db_size, 
 				break;
 		}
 	}
+
+	// Conditional statement needed to correctly set chunk size
 	if (args->split != -1)
+		// For parallel STREAM
 		args->chunk = args->db_size / args->split;
 	else
+		// For serial STREAM
 		args->chunk = args->db_size;
 
 	return help;
