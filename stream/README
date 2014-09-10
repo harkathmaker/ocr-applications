@@ -1,38 +1,3 @@
-*****************************
-** Current Status of Files **
-*****************************
-
-generate_results.py:
-	-- Initial working version for generating simple (x, y) data for gnuplot
-
-options.h:
-	-- Support for all OCR stream versions
-
-parallel_db_edt_breakdown_stream.c:
-	-- Full getopt is supported
-
-parallel_db_breakdown_stream.c:
-	-- Full getopt is supported
-
-parallel_stream.c:
-	-- Full getopt is supported
-
-serial_edt_breakdown_stream.c:
-	-- Full getopt is supported
-
-serial_stream.c
-	-- Full getopt is supported
-
-********************
-** Pre-requisites **
-********************
-
-Gnu-plot 
-To create graphs in generate_results.py 
-
-Python 2.7.5:
-To run generate_results.py
-
 ************************
 ** Build Instructions **
 ************************
@@ -41,64 +6,52 @@ To build all files:
 	make all 
 
 To build specific file: 
-	make <file_name>.o
-	ex: make serial_stream.o
+	make <file_name>
+	ex: make serial_stream
 
 ***********************
 ** Overview of Files **
 ***********************
 
-generate_results.py:
-	-- Generates results and graphs for serial and parallel stream versions
-
-
 options.h:
 	-- Contains getopt parsing for *_stream.c files
 
+helper.h:
+	-- Contains all helper functions to run serial and parallel versions of STREAM
 
-parallel_db_edt_breakdown_stream.c:
-	-- Combines parall_db_breakdown_stream.c and serial_edt_breakdown_stream.c.
-	-- Datablocks are "broken down" by "split" number of "chunk"s.
-	-- Vector operations are broken apart into separate EDTs.
-
-
-parallel_db_breakdown_stream.c:
-	-- Represents a datablock of size "db_size" by "split" number of "chunk"s
-	   where chunk = db_size / split
-	-- "db_size" and "split" should be set up such that db_size % split = 0.
-	-- partial a, b, and c "arrays" each of size "chunk" and timings of size iterations are stored in EACH datablock 
-	   ex: db_size = 10, split = 2, chunk = 10 / 2 = 5
-	       So, 2 datablocks with each a, b, c array having size 5 will be created
-		   instead of 1 datablock of size 10 for each a, b, c, array
-		                   a                      b                          c                               timings
-		datablock0 = [0 to (chunk - 1)] [chunk to (2 * chunk - 1)] [2 * chunk to (3 * chunk - 1)] [3 * chunk to (3 * chunk + iterations)]
-		datablock1 = [0 to (chunk - 1)] [chunk to (2 * chunk - 1)] [2 * chunk to (3 * chunk - 1)] [3 * chunk to (3 * chunk + iterations)]
-
+native_stream.c:
+	-- Modified version of STREAM found: http://www.cs.virginia.edu/stream/FTP/Code/stream.c
+	-- Notable modifications include:
+		-- -e option for specifying export file name generating output similar to -e option of OCR STREAM 	
+		   versions for easily comparing results.
+		-- NUMTHREADS macro for specifying number of threads when testing multithreaded STREAM with openmp
 
 parallel_stream.c:
-	-- Simple parallel implementation of stream in OCR.
-	-- Datablock are divided implicitly via indexing set by "split"
-	-- Each instance of pipelineEDT operates on db_size / split number of elements
-	-- All vector operations are run in a single edt (pipelineEDT) similar to serial_stream.c
-	   with the difference being that there will be "split" instances of pipelineEDT each
-	   operating on db_size / split.
-
-
-serial_edt_breakdown_stream.c:
-	-- Breaks apart vector operations (COPY, SCALE, ADD, TRIAD) into 
-	   separate EDTs
-
-
+	-- Parallel implementation of stream in OCR.
+	-- "db_size" and "split" should be set up such that db_size % split = 0.
+	-- "Split" corresponds to number of EDTs working on "split" number of data blocks.
+	-- Data blocks are "broken down" by "split" number of "chunk"s.
+	-- Vector operations are broken apart into separate EDTs.
+	-- partial a, b, and c "arrays" each of size "chunk" and timings of size iterations are stored in EACH datablock
+	   ex: db_size = 10, split = 2, chunk = 10 / 2 = 5, iterations = 3
+	       So, 2 datablocks with each a, b, c array having size 5 will be created
+		   instead of 1 datablock of size 10 for each a, b, c, array
+		                   a                      b                          c                               
+		datablock0 = [0 to (chunk - 1)] [chunk to (2 * chunk - 1)] [2 * chunk to (3 * chunk - 1)]
+		datablock1 = [0 to (chunk - 1)] [chunk to (2 * chunk - 1)] [2 * chunk to (3 * chunk - 1)]
+		
+			            Iteration 1 Timings          Iteration 2 Timings          Iteration 3 Timings
+		datablock2 = [copy1, scale1, add1, triad1, copy2, scale2, add2, triad2, copy3, scale3, add3, triad3]
+		
 serial_stream.c:
 	-- Serial implementation of stream in OCR.
 	-- Vector operations are run in a single EDT (iterEdt) in the following order: 
 	   COPY --> SCALE --> ADD --> TRIAD
 
-
 - e | --export files:
 	Timing data is reported in the following format:
-	Tria1 1, Trial 2, Trial 3, ... , Trial N, Average of N Trials
-
-***********
-** Notes **
-***********
+	
+	Data block size, # Iterations, Thread Count, Scalar Value, Avg Copy, Avg Scale, Avg Add, Avg Triad 
+	
+	*** Copy, Scale, Add, Triad values reported in MB/s
+	*** In parallel_stream.c Thread Count refers to -p value
