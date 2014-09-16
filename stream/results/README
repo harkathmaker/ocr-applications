@@ -1,0 +1,7 @@
+***********
+** Notes **
+***********
+
+*** All trials were done on an Intel Core i3 Processor with 4 GB RAM Running Fedora 19
+*** Threads on OCR Graphs correspond to the -p value
+*** Data Block Size = 102400 was chosen as best performance for most runs

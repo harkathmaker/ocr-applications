@@ -1,27 +1,36 @@
 #!/bin/bash
 
+# Global Controls
 make all
 min=100
 max=10000000
-i=30
+itr=30
+inc=2
 
-# native STREAM runs
-for ((db=$min; db<=$max; db=db*2))
-	do 
-		echo ./$name -d $db -i $i -e $name.csv -r
-		./$name -d $db -i $i -e $name.csv -r
-	done
+minthreads=1
+maxthreads=4
 
-# OCR STREAM runs
-'
-name=parallel_stream
-for p in 1 2 3 4
+native=native_stream
+nativeparalllel=native_parallel_stream
+ocr=parallel_stream
+
+# native STREAM Runs
+for ((t =$minthreads; t <=$maxthreads; t++))
 	do
-		for ((db=$min; db<=$max; db=db*10))
+		for ((db=$min; db<=$max; db=db*inc))
 			do
-				echo ./$name -d $db -i $i -e $name.csv -p $p -r
-				./$name -d $db -i $i -e $name.csv -p $p -r
+				echo gcc $native.c -fopenmp -DSTREAM_ARRAY_SIZE=$db -DNUMTHREADS=$t -DNTIMES=$itr -o $nativeparalllel
+				gcc $native.c -fopenmp -DSTREAM_ARRAY_SIZE=$db -DNUMTHREADS=$t -DNTIMES=$itr -o $nativeparalllel
+				./$nativeparalllel -e $nativeparalllel.csv
 			done
-
 	done
-'
+
+# OCR STREAM Runs
+for ((p=$minthreads; p <=$maxthreads; p++))
+	do
+		for ((db=$min; db<=$max; db=db*inc))
+			do
+				echo ./$ocr -d $db -i $itr -e $ocr.csv -p $p -r
+				./$ocr -d $db -i $itr -e $ocr.csv -p $p -r
+			done
+	done
